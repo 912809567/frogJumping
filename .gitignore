@@ -1,0 +1,14 @@
+# 依赖
+node_modules/
+
+# 测试与调试输出
+output/
+.playwright-cli/
+*.log
+
+# 微信开发者工具个人配置
+project.private.config.json
+
+# 系统文件
+.DS_Store
+Thumbs.db

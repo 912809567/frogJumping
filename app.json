@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "荷塘来信",
+    "navigationBarBackgroundColor": "#285f49",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#58c59d"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

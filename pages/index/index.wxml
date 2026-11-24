@@ -1,0 +1,127 @@
+<view class="game-page phase-{{phase}}">
+  <canvas id="webgl" type="webgl" class="game-canvas" disable-scroll bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd" bindtouchcancel="onTouchCancel"></canvas>
+  <cover-view class="masthead"><cover-view><cover-view class="brand">荷塘来信</cover-view><cover-view class="chapter">{{chapter}}</cover-view></cover-view><cover-view class="season">初夏 · 晴</cover-view></cover-view>
+  <cover-view class="hub-back" aria-label="返回总首页" bindtap="goHome" wx:if="{{phase === 'route' || phase === 'nurture' || phase === 'status' || phase === 'settings' || phase === 'album'}}">←</cover-view>
+  <cover-view class="pause-command" aria-label="暂停冒险" bindtap="pauseAdventure" wx:if="{{phase === 'levelJump' || phase === 'levelBug' || phase === 'returnChoice' || phase === 'returnTravel' || phase === 'sling' || phase === 'returnResult'}}">Ⅱ</cover-view>
+  <cover-view class="loading" wx:if="{{!threeReady}}">{{initError ? '池塘加载失败，请重新打开' : '池塘正在苏醒'}}</cover-view>
+  <cover-view class="home-title" wx:if="{{phase === 'home'}}"><cover-view class="home-kicker">初夏 · 第一封信</cover-view><cover-view class="home-brand">荷塘来信</cover-view><cover-view class="home-pet">{{hasCompanion ? savedPetName + '在池塘等你' : '小小的相遇，慢慢长大'}}</cover-view></cover-view>
+  <cover-view class="home-menu" wx:if="{{phase === 'home'}}">
+    <cover-view class="start-command {{!threeReady ? 'is-disabled' : ''}}" aria-label="{{hasAdventure ? '继续冒险' : '游戏开始'}}" bindtap="startGame"><cover-view>{{hasAdventure ? '继续冒险' : '游戏开始'}}</cover-view><cover-view class="command-arrow" aria-hidden="true">→</cover-view></cover-view>
+    <cover-view class="menu-secondary"><cover-view bindtap="openStatus">查看角色状态</cover-view><cover-view bindtap="openAlbum">纪念册</cover-view><cover-view bindtap="openSettings">设置</cover-view></cover-view>
+    <cover-view class="home-record">{{hasAdventure ? adventureLabel : hasCompanion ? savedPetRoute + ' · ' + savedPetStage : '夏日的故事即将开始'}} · 已相遇 {{metCount}} / {{routeTotal}}</cover-view>
+  </cover-view>
+  <cover-view class="dock status-dock" wx:if="{{phase === 'status'}}">
+    <cover-view wx:if="{{hasCompanion}}">
+      <cover-view class="dock-heading"><cover-view><cover-view class="heading">{{savedPetName}}</cover-view><cover-view class="route-tag">{{savedPetRoute}} · {{savedPetStage}}</cover-view></cover-view><cover-view class="status-badge">{{statusPerk}}</cover-view></cover-view>
+      <cover-view class="status-growth"><cover-view>成长</cover-view><cover-view>{{statusGrowth}}%</cover-view></cover-view><cover-view class="growth-track"><cover-view style="width:{{statusGrowth}}%;"></cover-view></cover-view>
+      <cover-view class="needs"><cover-view><cover-view>饱食</cover-view><cover-view class="need-number">{{statusFood}}</cover-view></cover-view><cover-view><cover-view>亲密</cover-view><cover-view class="need-number pink">{{statusAffection}}</cover-view></cover-view><cover-view><cover-view>活力</cover-view><cover-view class="need-number blue">{{statusPlay}}</cover-view></cover-view></cover-view>
+      <cover-view class="status-facts"><cover-view>冒险 {{statusAdventures}} 次</cover-view><cover-view>莲子 {{statusSnacks}} 颗</cover-view><cover-view>{{statusSkill}}</cover-view></cover-view>
+      <cover-view class="primary {{!threeReady ? 'is-disabled' : ''}}" bindtap="resumeCompanion">继续陪伴</cover-view><cover-view class="quiet" bindtap="openNewCompanion">结识新的伙伴</cover-view>
+    </cover-view>
+    <cover-view wx:else><cover-view class="heading">还没有伙伴</cover-view><cover-view class="empty-status">池塘里，有一只小蝌蚪正等着你。</cover-view><cover-view class="primary {{!threeReady ? 'is-disabled' : ''}}" bindtap="startGame">去遇见它</cover-view></cover-view>
+  </cover-view>
+  <cover-view class="dock settings-dock" wx:if="{{phase === 'settings'}}">
+    <cover-view class="settings-title">设置</cover-view>
+    <cover-view class="setting-row"><cover-view>游戏音效</cover-view><cover-view class="setting-switch {{soundEnabled ? 'on' : ''}}" aria-label="{{soundEnabled ? '关闭游戏音效' : '开启游戏音效'}}" data-key="soundEnabled" bindtap="toggleSetting"><cover-view class="switch-knob"></cover-view></cover-view></cover-view>
+    <cover-view class="setting-row"><cover-view>震动反馈</cover-view><cover-view class="setting-switch {{hapticEnabled ? 'on' : ''}}" aria-label="{{hapticEnabled ? '关闭震动反馈' : '开启震动反馈'}}" data-key="hapticEnabled" bindtap="toggleSetting"><cover-view class="switch-knob"></cover-view></cover-view></cover-view>
+    <cover-view class="setting-row quality-label"><cover-view>画面品质</cover-view></cover-view>
+    <cover-view class="quality-segments"><cover-view class="{{qualityMode === 'auto' ? 'active' : ''}}" data-mode="auto" bindtap="chooseQuality">自动</cover-view><cover-view class="{{qualityMode === 'high' ? 'active' : ''}}" data-mode="high" bindtap="chooseQuality">高清</cover-view><cover-view class="{{qualityMode === 'smooth' ? 'active' : ''}}" data-mode="smooth" bindtap="chooseQuality">流畅</cover-view></cover-view>
+    <cover-view class="settings-meta">荷塘来信 · 初夏篇</cover-view><cover-view class="primary" bindtap="goHome">完成</cover-view>
+    <cover-view class="storage-notice" wx:if="{{storageNotice}}">{{storageNotice}}</cover-view>
+  </cover-view>
+  <cover-view class="scene-caption" wx:if="{{phase === 'route'}}">
+    <cover-view class="eyebrow">未来的模样</cover-view><cover-view class="scene-title small">{{selectedRouteName || '它会成为谁？'}}</cover-view>
+    <cover-view class="perk-line">{{selectedPerkName ? selectedPerkName + ' · ' + selectedPerkText : ''}}</cover-view>
+    <cover-view class="perk-line">{{skillName ? skillName + ' · ' + skillText : ''}}</cover-view>
+  </cover-view>
+  <cover-view class="scene-caption" wx:elif="{{phase === 'nurture'}}">
+    <cover-view class="eyebrow">{{selectedRouteName}} · {{stageName}}</cover-view>
+    <cover-view class="pet-name" bindtap="renameCompanion">{{petName}} <cover-view class="rename-symbol">✎</cover-view></cover-view>
+    <cover-view class="perk-line">{{petHabit}}</cover-view>
+  </cover-view>
+  <cover-view class="reaction" wx:if="{{actionLabel && !bubblePlaying}}">{{actionLabel}}</cover-view>
+  <cover-view class="dock" wx:if="{{phase === 'route'}}">
+    <cover-view class="dock-heading"><cover-view class="heading">成长路线</cover-view><cover-view class="step">{{routeList.length}} 条路线</cover-view></cover-view>
+    <cover-view class="route-scroll" scroll-y><cover-view class="route-grid">
+      <cover-view wx:for="{{routeList}}" wx:key="id" class="route-option {{selectedRouteId === item.id ? 'selected' : ''}}" data-id="{{item.id}}" bindtap="selectRoute"><cover-view class="route-name">{{item.name}}</cover-view><cover-view class="route-tag">{{item.tag}} · {{item.perkName}}{{item.met ? ' ✓' : ''}}</cover-view></cover-view>
+    </cover-view></cover-view>
+    <cover-view class="action-row"><cover-view class="back" bindtap="goHome">←</cover-view><cover-view class="primary {{!selectedRouteId || !threeReady ? 'is-disabled' : ''}}" bindtap="confirmRoute">取个名字，开始陪伴</cover-view></cover-view>
+  </cover-view>
+  <cover-view class="dock" wx:elif="{{phase === 'nurture'}}">
+    <cover-view wx:if="{{bubblePlaying}}">
+      <cover-view class="dock-heading"><cover-view class="heading">追泡泡</cover-view><cover-view class="step">{{bubbleSeconds}} 秒 · {{bubbleScore}} / 5</cover-view></cover-view>
+      <cover-view class="quiet" bindtap="finishBubbleGame">休息一会儿</cover-view>
+    </cover-view>
+    <cover-view wx:else>
+      <cover-view class="dock-heading"><cover-view class="heading">今日的陪伴</cover-view><cover-view class="step">成长 {{growthPercent}}%</cover-view></cover-view>
+      <cover-view class="growth-track"><cover-view style="width: {{growthPercent}}%;"></cover-view></cover-view>
+      <cover-view class="care-hint {{needKey ? 'warn' : ''}}">{{needHint}}</cover-view>
+      <cover-view class="needs">
+        <cover-view class="{{needKey === 'food' ? 'alert' : ''}}"><cover-view>饱食</cover-view><cover-view class="need-number">{{food}}</cover-view></cover-view>
+        <cover-view class="{{needKey === 'affection' ? 'alert' : ''}}"><cover-view>亲密</cover-view><cover-view class="need-number pink">{{affection}}</cover-view></cover-view>
+        <cover-view class="{{needKey === 'play' ? 'alert' : ''}}"><cover-view>活力</cover-view><cover-view class="need-number blue">{{play}}</cover-view></cover-view>
+      </cover-view>
+      <cover-view class="care-row {{careBusy ? 'is-disabled' : ''}}"><cover-view data-type="feed" bindtap="careAction">{{snacks ? '喂莲子 ×' + snacks : '喂食'}}</cover-view><cover-view data-type="pet" bindtap="careAction">抚摸</cover-view><cover-view data-type="play" bindtap="careAction">追泡泡</cover-view></cover-view>
+      <cover-view class="souvenirs" wx:if="{{souvenirs.length}}"><cover-view wx:for="{{souvenirs}}" wx:key="*this" class="souvenir">{{item}}</cover-view></cover-view>
+      <cover-view class="primary {{careBusy ? 'is-disabled' : ''}}" wx:if="{{canChallenge}}" bindtap="startJumpChallenge">{{hasAdventure ? '继续冒险 · ' + adventureLabel : '出发，荷叶小径'}}</cover-view>
+      <cover-view class="quiet home-link" bindtap="goHome">回到首页</cover-view>
+    </cover-view>
+    <cover-view class="storage-notice" wx:if="{{storageNotice}}">{{storageNotice}}</cover-view>
+  </cover-view>
+  <cover-view class="game-hud" wx:if="{{phase === 'levelJump' || phase === 'levelBug'}}">
+    <cover-view class="counter"><cover-view class="counter-value">{{phase === 'levelJump' ? jumps : bugs}}</cover-view><cover-view class="counter-total">/ {{phase === 'levelJump' ? jumpGoal : bugGoal}}</cover-view></cover-view>
+    <cover-view class="hud-right">
+      <cover-view class="perfect" wx:if="{{phase === 'levelJump' && perfect > 0}}">完美 ×{{perfect}}</cover-view>
+      <cover-view class="combo" wx:if="{{phase === 'levelJump' ? jumpCombo > 1 : bugCombo > 1}}">连击 ×{{phase === 'levelJump' ? jumpCombo : bugCombo}}</cover-view>
+      <cover-view class="lives" wx:if="{{phase === 'levelJump'}}"><cover-view wx:for="{{attemptSlots}}" wx:key="*this" class="life-dot {{index < attempts ? 'on' : ''}}"></cover-view></cover-view>
+      <cover-view class="home" bindtap="returnToPond">回池塘</cover-view>
+    </cover-view>
+  </cover-view>
+  <cover-view class="bonus-hud" wx:if="{{bonusSeeds > 0 && (phase === 'levelJump' || phase === 'levelBug')}}">额外莲子 +{{bonusSeeds}}</cover-view>
+  <cover-view class="journey-progress" wx:if="{{phase === 'levelJump'}}"><cover-view wx:for="{{[1,2,3,4]}}" wx:key="*this" class="journey-segment {{item <= districtNumber ? 'on' : ''}}"></cover-view><cover-view class="journey-label">{{districtNumber}} / 4 · {{districtName}}</cover-view></cover-view>
+  <cover-view class="skill-dock" wx:if="{{phase === 'levelJump' && !gameOver && !resting && !transition}}">
+    <cover-view class="skill-control {{skillReady ? '' : 'spent'}} {{skillArmed ? 'armed' : ''}}" bindtap="activateSkill"><cover-view class="skill-symbol">{{skillSymbol}}</cover-view><cover-view class="skill-caption"><cover-view class="skill-name">{{skillName}}</cover-view><cover-view class="skill-status">{{skillStatus}}</cover-view></cover-view></cover-view>
+  </cover-view>
+  <cover-view class="power" wx:if="{{phase === 'levelJump' && !gameOver && !resting}}"><cover-view class="power-label"><cover-view>{{chargeHint}}</cover-view><cover-view>{{chargePercent}}%</cover-view></cover-view><cover-view class="power-track"><cover-view class="power-fill tone-{{chargeTone}}" style="width: {{chargePercent}}%;"></cover-view><cover-view class="power-target" style="left: {{targetCharge}}%;"></cover-view></cover-view></cover-view>
+  <cover-view class="feedback {{phase === 'levelJump' ? 'jump-feedback' : 'bug-feedback'}}" wx:if="{{(phase === 'levelJump' || phase === 'levelBug') && !gameOver && !resting}}">{{bugHint || message}}</cover-view>
+  <cover-view class="bug-guide" wx:if="{{phase === 'levelBug' && !gameOver}}"><cover-view class="bug-guide-title">{{bugGuideTitle}}</cover-view><cover-view class="bug-guide-line" wx:for="{{bugGuideSteps}}" wx:key="*this">{{item}}</cover-view></cover-view>
+  <cover-view class="transition" wx:if="{{transition}}"><cover-view>太棒了</cover-view><cover-view class="transition-sub">下一段旅程，即将开始</cover-view></cover-view>
+  <cover-view class="scrim" wx:if="{{gameOver}}"><cover-view class="result"><cover-view class="eyebrow">{{failTitle}}</cover-view><cover-view class="result-title">重新出发</cover-view><cover-view class="result-score">{{phase === 'levelBug' ? bugs : jumps}} <cover-view>{{failUnit}}</cover-view></cover-view><cover-view class="result-copy">{{message}}</cover-view><cover-view class="primary" bindtap="retryLevel">{{phase === 'levelJump' ? '从最近进度继续' : '重新挑战'}}</cover-view><cover-view class="quiet" bindtap="returnToPond">回到{{petName}}的池塘</cover-view></cover-view></cover-view>
+  <cover-view class="return-heading" wx:if="{{phase === 'returnChoice' || phase === 'returnTravel'}}"><cover-view class="eyebrow">{{petName}} · {{bugs}} 只昆虫 · 满载而归</cover-view><cover-view class="return-title">{{returnTitle}}</cover-view></cover-view>
+  <cover-view class="dock return-dock" wx:if="{{phase === 'returnChoice'}}">
+    <cover-view class="return-option" data-mode="boat" bindtap="chooseReturn"><cover-view class="return-icon">≈</cover-view><cover-view class="return-option-copy"><cover-view class="heading">划船回家</cover-view><cover-view class="route-tag">荷风、小舟与水波</cover-view></cover-view><cover-view class="return-arrow">↗</cover-view></cover-view>
+    <cover-view class="return-option" data-mode="plane" bindtap="chooseReturn"><cover-view class="return-icon">✈</cover-view><cover-view class="return-option-copy"><cover-view class="heading">坐飞机回家</cover-view><cover-view class="route-tag">飞越盛夏的荷塘</cover-view></cover-view><cover-view class="return-arrow">↗</cover-view></cover-view>
+    <cover-view class="return-option" data-mode="sling" bindtap="chooseReturn"><cover-view class="return-icon">Y</cover-view><cover-view class="return-option-copy"><cover-view class="heading">弹弓突袭</cover-view><cover-view class="route-tag">害虫堡垒挡住了归途</cover-view></cover-view><cover-view class="return-arrow">↗</cover-view></cover-view>
+    <cover-view class="quiet" bindtap="quickReturn">快速回家</cover-view>
+  </cover-view>
+  <cover-view class="travel-controls" wx:if="{{phase === 'returnTravel'}}">
+    <cover-view class="travel-progress"><cover-view style="width:{{returnProgress}}%;"></cover-view></cover-view>
+    <cover-view class="travel-percent">归途 {{returnProgress}}%</cover-view>
+    <cover-view class="travel-feedback">{{travelFeedback || (returnMode === 'boat' ? '莲子' : '穿环') + ' ' + travelCollected + ' / 3'}}</cover-view>
+    <cover-view class="steer-row"><cover-view class="steer-button {{returnLane === -1 ? 'active' : ''}}" aria-label="向左" data-lane="-1" bindtap="steerReturn">←</cover-view><cover-view class="steer-button {{returnLane === 0 ? 'active' : ''}}" aria-label="回到中间" data-lane="0" bindtap="steerReturn">◎</cover-view><cover-view class="steer-button {{returnLane === 1 ? 'active' : ''}}" aria-label="向右" data-lane="1" bindtap="steerReturn">→</cover-view></cover-view>
+    <cover-view class="paddle-control" wx:if="{{returnMode === 'boat'}}" bindtap="paddleReturn"><cover-view class="paddle-symbol">↔</cover-view><cover-view>划一桨</cover-view></cover-view>
+    <cover-view class="action-row"><cover-view class="return-secondary" bindtap="changeReturnMode">换一种归途</cover-view><cover-view class="return-secondary" bindtap="quickReturn">快速回家</cover-view></cover-view>
+  </cover-view>
+  <cover-view class="sling-hud" wx:if="{{phase === 'sling'}}"><cover-view><cover-view class="eyebrow">{{fortressName}}</cover-view><cover-view class="heading">{{fortressDamage ? '破坏 ' + fortressDamage + '%' : '弹弓突袭'}}</cover-view></cover-view><cover-view class="home" bindtap="changeReturnMode">换种方式</cover-view></cover-view>
+  <cover-view class="fortress-segments" wx:if="{{phase === 'sling' && slingReady}}"><cover-view wx:for="{{['木石门楼','双层风塔','护城矮堡']}}" wx:key="*this" class="{{fortressLayout === index ? 'active' : ''}}" data-layout="{{index}}" bindtap="chooseFortress">{{item}}</cover-view></cover-view>
+  <cover-view class="sling-controls" wx:if="{{phase === 'sling'}}"><cover-view class="power-label"><cover-view>{{slingReady ? '蓄力' : '飞向堡垒'}}</cover-view><cover-view>{{slingPower}}%</cover-view></cover-view><cover-view class="power-track"><cover-view class="power-fill tone-good" style="width:{{slingPower}}%;"></cover-view></cover-view><cover-view class="launch-control" wx:if="{{slingReady}}" bindtap="fireSling"><cover-view>↗</cover-view><cover-view>弹射</cover-view></cover-view></cover-view>
+  <cover-view class="return-result-title" wx:if="{{phase === 'returnResult'}}"><cover-view class="eyebrow">{{returnOutcome === 'win' ? '四脚朝天，胜利归来' : '大蝗虫守住了堡垒'}}</cover-view><cover-view class="return-title">{{returnTitle}}</cover-view></cover-view>
+  <cover-view class="dock return-result-dock" wx:if="{{phase === 'returnResult' && returnResultReady}}"><cover-view class="primary" bindtap="finishReturn">{{returnOutcome === 'win' ? '带着战利品回家' : '收好莲子回家'}}</cover-view><cover-view class="action-row"><cover-view class="return-secondary" bindtap="retrySling">再弹一次</cover-view><cover-view class="return-secondary" bindtap="changeReturnMode">换一种归途</cover-view></cover-view></cover-view>
+  <cover-view class="dock final-dock" wx:if="{{phase === 'final'}}">
+    <cover-view class="eyebrow">{{newRoute ? '新相遇 · 成长纪念' : '又一次夏日冒险'}}</cover-view>
+    <cover-view class="heading">{{petName}}的来信</cover-view>
+    <cover-view class="letter"><cover-view wx:for="{{letterLines}}" wx:key="*this" class="letter-line">{{item}}</cover-view></cover-view>
+    <cover-view class="final-stats"><cover-view class="stat"><cover-view class="stat-value grade-{{grade}}">{{grade}}</cover-view><cover-view class="stat-label">评级{{gradeTag ? ' · ' + gradeTag : ''}}</cover-view></cover-view><cover-view class="stat"><cover-view class="stat-value">{{perfect}}/{{jumpGoal}}</cover-view><cover-view class="stat-label">完美落叶</cover-view></cover-view><cover-view class="stat"><cover-view class="stat-value">{{runTimeText}}</cover-view><cover-view class="stat-label">用时</cover-view></cover-view></cover-view>
+    <cover-view class="reward">{{rewardText}}</cover-view>
+    <cover-view class="final-meta">{{selectedRouteName}} · {{careTitle}} · 第 {{adventures}} 次冒险</cover-view>
+    <cover-view class="primary" bindtap="returnToPond">一起回家</cover-view>
+  </cover-view>
+  <cover-view class="scrim pause-overlay" wx:if="{{sessionPaused}}"><cover-view class="result"><cover-view class="eyebrow">{{petName}}的冒险</cover-view><cover-view class="result-title">稍等片刻</cover-view><cover-view class="result-copy">{{adventureLabel}}</cover-view><cover-view class="primary" bindtap="continueAdventure">继续</cover-view><cover-view class="quiet" bindtap="saveAndGoHome">保存并回到首页</cover-view><cover-view class="quiet" bindtap="restartAdventure">重新开始冒险</cover-view></cover-view></cover-view>
+  <cover-view class="album-page" scroll-y wx:if="{{phase === 'album'}}">
+    <cover-view wx:if="{{!selectedMemory}}"><cover-view class="album-heading">成长纪念册</cover-view><cover-view class="album-count">{{albumCount}} 段回忆</cover-view>
+      <cover-view class="album-empty" wx:if="{{!albumCount}}">第一段回忆，等着与你相遇。</cover-view>
+      <cover-view class="memory-row" wx:for="{{albumEntries}}" wx:key="id" data-id="{{item.id}}" bindtap="openMemory"><cover-image class="memory-thumb" src="{{item.photo}}" wx:if="{{item.photo}}"></cover-image><cover-view class="memory-stamp" wx:else>{{item.stamp}}</cover-view><cover-view class="memory-copy"><cover-view class="memory-title">{{item.title}}</cover-view><cover-view class="memory-meta">{{item.name}} · {{item.routeName}}</cover-view><cover-view class="memory-meta">{{item.date}}</cover-view></cover-view><cover-view class="memory-arrow">›</cover-view></cover-view>
+    </cover-view>
+    <cover-view wx:else><cover-view class="memory-back" bindtap="closeMemory">← 纪念册</cover-view><cover-image class="memory-photo" src="{{selectedMemory.photo}}" wx:if="{{selectedMemory.photo}}"></cover-image><cover-view class="memory-hero-stamp" wx:else>{{selectedMemory.stamp}}</cover-view><cover-view class="album-heading">{{selectedMemory.title}}</cover-view><cover-view class="memory-meta">{{selectedMemory.name}} · {{selectedMemory.routeName}} · {{selectedMemory.date}}</cover-view><cover-view class="memory-note">{{selectedMemory.note}}</cover-view><cover-view class="memory-letter" wx:for="{{selectedMemory.letter}}" wx:key="*this">{{item}}</cover-view></cover-view>
+  </cover-view>
+</view>
