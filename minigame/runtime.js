@@ -1,5 +1,6 @@
 const Hud = require('./hud');
 const photo = require('./photo');
+const { createPhysicsLoader } = require('./physics');
 
 function windowInfo(api){
   const info=api.getWindowInfo?api.getWindowInfo():api.getSystemInfoSync();
@@ -31,12 +32,100 @@ function launch(definition,api,host,options){
     this.requestUiFrame();
   };
   game.renderWorld=definition.renderFrame.bind(game);
-  game.renderFrame=function(force){this.renderWorld();if(this.hud)this.hud.render(force===true);};
+  let frameCount=0;
+  game.renderFrame=function(force){
+    if(contextLost)return;
+    if(++frameCount%120===0&&this.checkContextLost())return;
+    this.renderWorld();if(this.hud)this.hud.render(force===true);
+  };
   game.captureScenePhoto=options=>photo.capture(game,api,options);
   game.restartNativeGame=function(){
     if(api.restartMiniProgram)api.restartMiniProgram({fail:()=>api.showModal({title:'请重新打开',content:'请关闭游戏后重新进入。',showCancel:false})});
     else if(api.showModal)api.showModal({title:'请重新打开',content:'请关闭游戏后重新进入。',showCancel:false});
   };
+  const saveProgress=()=>{try{game.saveCompanion();if(game.saveAdventure)game.saveAdventure();}catch(error){}};
+
+  // ---- 稳定性：WebGL 上下文丢失 ----
+  // 长时间切后台或显存紧张时系统可能回收 WebGL 上下文，继续渲染只会黑屏。
+  // 场景资源无法可靠重建，因此保存进度后提示重新载入。
+  let contextLost=false;
+  game.checkContextLost=function(){
+    const gl=this.renderer&&this.renderer.getContext&&this.renderer.getContext();
+    if(gl&&typeof gl.isContextLost==='function'&&gl.isContextLost()){this.handleContextLost();return true;}
+    return false;
+  };
+  game.handleContextLost=function(){
+    if(contextLost||disposed)return;contextLost=true;
+    this.stopLoop();saveProgress();
+    const restart=()=>this.restartNativeGame();
+    if(api.showModal)api.showModal({title:'画面需要重新载入',content:'手机回收了图形资源，伙伴和冒险进度已经保存。',showCancel:false,success:restart,fail:restart});
+    else restart();
+  };
+  if(canvas.addEventListener){
+    const onLost=event=>{if(event&&event.preventDefault)event.preventDefault();game.handleContextLost();};
+    canvas.addEventListener('webglcontextlost',onLost,false);
+    listeners.push(()=>{if(canvas.removeEventListener)canvas.removeEventListener('webglcontextlost',onLost,false);});
+  }
+
+  // ---- 稳定性：内存告警 ----
+  // 降低 WebGL 像素密度（逻辑尺寸、触控坐标不变），并限制自适应画质之后最多恢复到 1.5。
+  game.handleMemoryWarning=function(){
+    const quality=this.renderQuality;
+    if(quality){
+      quality.max=Math.min(quality.max,1.5);
+      if(this.renderer&&this.renderer.setPixelRatio&&quality.current>1){
+        const now=Date.now();quality.current=1;quality.changedAt=now;
+        this.renderer.setPixelRatio(1);if(this.resetRenderQualityWindow)this.resetRenderQualityWindow(now,2000);
+      }
+    }
+    if(api.triggerGC)api.triggerGC();
+  };
+
+  // ---- 物理分包 ----
+  const physicsLoader=createPhysicsLoader(api,opts.physicsHost||(typeof GameGlobal==='undefined'?{}:GameGlobal));
+  let preloadTimer=null;
+  game.physicsEngine=()=>physicsLoader.engine();
+  game.ensurePhysics=function(callback){
+    if(physicsLoader.ready())return true;
+    if(api.showLoading)api.showLoading({title:'准备弹弓…',mask:true});
+    physicsLoader.load(error=>{
+      if(api.hideLoading)api.hideLoading();
+      if(disposed)return;
+      if(error){
+        console.error('Physics subpackage failed',error);
+        if(api.showModal)api.showModal({title:'弹弓资源下载失败',content:'请检查网络后重试，也可以先选择划船或飞机回家。',showCancel:false});
+      }
+      if(callback)callback(error);
+    });
+    return false;
+  };
+  // 读取存档时如果停在弹弓阶段，要先下载物理分包，再恢复冒险。
+  const resumeAdventure=game.resumeAdventure;
+  game.resumeAdventure=function(){
+    const saved=this.suspendedAdventure;
+    if(saved&&(saved.stage==='sling'||saved.stage==='result')&&this.data.threeReady&&!physicsLoader.ready()){
+      this.ensurePhysics(error=>{if(!error)resumeAdventure.call(this);});
+      return true;
+    }
+    return resumeAdventure.call(this);
+  };
+  // 首屏完成后在空闲时预下载，通常玩到返程前就已就绪。
+  const schedulePhysicsPreload=()=>{
+    if(preloadTimer!==null||physicsLoader.ready()||!api.loadSubpackage)return;
+    preloadTimer=setTimeout(()=>{preloadTimer=null;if(!disposed)physicsLoader.load(()=>{});},opts.physicsPreloadDelay===undefined?4000:opts.physicsPreloadDelay);
+  };
+
+  // ---- 版本更新 ----
+  if(api.getUpdateManager){
+    try{
+      const updater=api.getUpdateManager();
+      updater.onUpdateReady(()=>{
+        if(!api.showModal){saveProgress();updater.applyUpdate();return;}
+        api.showModal({title:'发现新版本',content:'新版本已经准备好，重启即可使用。伙伴和冒险进度会先保存。',confirmText:'重启',cancelText:'稍后',
+          success:result=>{if(result.confirm){saveProgress();updater.applyUpdate();}}});
+      });
+    }catch(error){}
+  }
 
   game.initThree=function(){
     this.jumpLeaves=[];this.insects=[];this.worldTadpoles=[];this.effects=null;this.unloaded=false;
@@ -51,7 +140,7 @@ function launch(definition,api,host,options){
         if(this.unloaded)return;
         try{
           this.captureReflections();this.showNurturePreview();this.cameraSnap();
-          this.setData({threeReady:true,initError:false});this.startLoop();
+          this.setData({threeReady:true,initError:false});this.startLoop();schedulePhysicsPreload();
         }catch(error){this.showNativeError(error);}
       };
       this.initFrame=canvas.requestAnimationFrame(()=>{this.initFrame=canvas.requestAnimationFrame(finish);});
@@ -142,7 +231,8 @@ function launch(definition,api,host,options){
     if(primaryTouch===null)return;if(uiTouch&&game.hud)game.hud.gesture=null;else game.onTouchCancel();primaryTouch=null;uiTouch=false;
   });
   listen('onHide','offHide',()=>{primaryTouch=null;uiTouch=false;if(game.hud)game.hud.gesture=null;game.onHide();});
-  listen('onShow','offShow',()=>game.onShow());
+  listen('onShow','offShow',()=>{if(contextLost||game.checkContextLost())return;game.onShow();});
+  listen('onMemoryWarning','offMemoryWarning',()=>game.handleMemoryWarning());
   listen('onWindowResize','offWindowResize',()=>{
     if(!game.data.threeReady||disposed)return;
     const info=windowInfo(api);game.nativeInfo=info;game.width=info.windowWidth;game.height=info.windowHeight;
@@ -158,6 +248,7 @@ function launch(definition,api,host,options){
   const unload=game.onUnload;
   game.onUnload=function(){
     if(disposed)return;disposed=true;keyboardCleanup();nameDone=null;listeners.forEach(remove=>remove());
+    if(preloadTimer!==null){clearTimeout(preloadTimer);preloadTimer=null;}
     if(uiFrame!==null){canvas.cancelAnimationFrame(uiFrame);uiFrame=null;}unload.call(this);
   };
   game.onReady();return game;

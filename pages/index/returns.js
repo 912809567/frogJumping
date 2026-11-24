@@ -1,4 +1,6 @@
 let CANNON;
+// 小游戏里 Cannon.js 位于 physics 分包，由 page.physicsEngine() 提供；小程序页面与 Node 检查直接 require。
+const physics = page => CANNON || (CANNON = page.physicsEngine ? page.physicsEngine() : require('cannon'));
 
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const ease = t => t * t * (3 - 2 * t);
@@ -141,6 +143,11 @@ class ReturnJourney {
 
   begin(mode) {
     if (MODES.indexOf(mode)<0) return;
+    if (mode==='sling' && this.page.ensurePhysics) {
+      const phase=this.page.data.phase;
+      // 物理分包未就绪时先下载，完成后仍停留在原阶段才继续搭建弹弓。
+      if (!this.page.ensurePhysics(error => { if (!error && this.page.data.phase===phase) this.begin(mode); })) return;
+    }
     this.setup(mode);
     if (mode==='sling') { this.buildSling(); return; }
     this.page.setData({ phase:'returnTravel', chapter:mode==='boat'?'荷风送归舟':'乘风归去',
@@ -256,7 +263,7 @@ class ReturnJourney {
   }
 
   makePhysics() {
-    const C=CANNON;
+    const C=physics(this.page);
     this.world=new C.World();this.world.gravity.set(0,-9.82,0);this.world.allowSleep=true;
     this.world.broadphase=new C.NaiveBroadphase();this.world.solver.iterations=12;
     const ground=new C.Body({mass:0});ground.addShape(new C.Plane());ground.quaternion.setFromEuler(-Math.PI/2,0,0);ground.position.y=-.06;
@@ -568,7 +575,4 @@ class ReturnJourney {
   }
 }
 
-module.exports = page => {
-  if (!CANNON) CANNON = require('cannon');
-  return new ReturnJourney(page);
-};
+module.exports = page => new ReturnJourney(page);

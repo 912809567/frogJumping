@@ -62,7 +62,7 @@ npm run build:audio  # 仅修改音效生成器后需要；生成音效已包含
 
 小游戏入口为 `game.js` / `game.json`；菜单、按钮、滚动和触控在 `minigame/`，使用离屏 Canvas 纹理叠加到同一 WebGL 画面，不依赖 WXML、`Page` 或 `createSelectorQuery`。
 HUD 脏更新最高约 30 次/秒、分辨率最多 1.5 倍，3D 保持独立帧循环和自适应画质。纪念照片直接读取场景像素并编码为本地 PNG，不包含界面、不要求开启 `preserveDrawingBuffer`。
-当前游戏包与本地音效约 1.46 MiB；源文件、测试输出、`node_modules`、旧页面及旧 npm 构建通过 `packOptions.ignore` 排除。
+当前首包约 1.25 MiB（含二进制模型与本地音效），弹弓物理引擎（Cannon.js）位于 `physics/` 分包约 0.13 MiB，按需加载并在首屏后空闲预热；运行时同时接入了 WebGL 上下文丢失保护、内存告警降像素密度与版本更新提示。源文件、测试输出、`node_modules`、旧页面及旧 npm 构建通过 `packOptions.ignore` 排除。
 
 不想开开发者工具时，可以起浏览器预览（页面结构和交互都能跑，方便调手感和取景）：
 

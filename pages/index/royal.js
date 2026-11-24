@@ -165,13 +165,13 @@ module.exports = function royal(T, helpers, options) {
   function headGeometry() {
     if(!sculpt){
       const raw=decode(headAsset.positions),normalRaw=decode(headAsset.normals),colors=decode(headAsset.colors),indexRaw=decode(headAsset.indices);
-      const posView=new DataView(raw.buffer),positions=new Float32Array(headAsset.vertexCount*3),normals=new Float32Array(positions.length),rgb=new Float32Array(positions.length),uv=new Float32Array(headAsset.vertexCount*2);
+      const posView=new DataView(raw.buffer,raw.byteOffset,raw.byteLength),positions=new Float32Array(headAsset.vertexCount*3),normals=new Float32Array(positions.length),rgb=new Float32Array(positions.length),uv=new Float32Array(headAsset.vertexCount*2);
       for(let i=0;i<positions.length;i++){
         positions[i]=posView.getInt16(i*2,true)*headAsset.scale;
         normals[i]=(normalRaw[i]>127?normalRaw[i]-256:normalRaw[i])/127;rgb[i]=colors[i]/255;
       }
       for(let i=0;i<headAsset.vertexCount;i++){uv[i*2]=(positions[i*3]+1)/2;uv[i*2+1]=(positions[i*3+1]-.72)/1.43;}
-      const index=new Uint16Array(indexRaw.length/2),view=new DataView(indexRaw.buffer);
+      const index=new Uint16Array(indexRaw.length/2),view=new DataView(indexRaw.buffer,indexRaw.byteOffset,indexRaw.byteLength);
       for(let i=0;i<index.length;i++)index[i]=view.getUint16(i*2,true);
       sculpt=new T.BufferGeometry();
       const set=(key,array,size)=>(sculpt.setAttribute||sculpt.addAttribute).call(sculpt,key,new T.Float32BufferAttribute(array,size));

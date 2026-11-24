@@ -5,6 +5,8 @@ for(let i=0;i<lookup.length;i++)lookup[i]=-1;
 for(let i=0;i<alphabet.length;i++)lookup[alphabet.charCodeAt(i)]=i;
 
 function decode(text, compressed) {
+  // 小游戏从二进制资源读到的已经是字节（minigame/binary-asset.js），不必再做 base64 解码。
+  if(typeof text!=='string')return compressed ? inflateSync(text) : text.slice();
   const out=new Uint8Array(Math.floor(text.length*3/4)-(text.endsWith('==')?2:text.endsWith('=')?1:0));
   let buffer=0,bits=0,index=0;
   for(let i=0;i<text.length;i++){

@@ -13,7 +13,7 @@ const storage=new Map(),callbacks={},frames=new Map();let frameId=0,canvases=0,m
 const api={getWindowInfo:()=>({windowWidth:390,windowHeight:844,pixelRatio:2,safeArea:{top:44,bottom:810}}),
   createCanvas(){canvases++;return new Canvas();},createImage:()=>({}),getStorageSync:key=>storage.get(key),setStorageSync:(key,value)=>storage.set(key,JSON.parse(JSON.stringify(value))),
   showModal:options=>{modal=options;},showKeyboard:()=>{},hideKeyboard:()=>{},showShareMenu(){},vibrateShort(){}};
-for(const name of ['TouchStart','TouchMove','TouchEnd','TouchCancel','Hide','Show','WindowResize','ShareAppMessage','KeyboardInput','KeyboardConfirm']){
+for(const name of ['TouchStart','TouchMove','TouchEnd','TouchCancel','Hide','Show','WindowResize','ShareAppMessage','KeyboardInput','KeyboardConfirm','MemoryWarning']){
   callbacks[name]=new Set();api['on'+name]=fn=>callbacks[name].add(fn);api['off'+name]=fn=>callbacks[name].delete(fn);
 }
 const fire=(name,event)=>Array.from(callbacks[name]).forEach(fn=>fn(event||{}));
@@ -28,8 +28,8 @@ function definition(){
   d.captureReflections=function(){};d.captureRoyalReflections=function(){};
   return d;
 }
-function boot(){
-  const g=launch(definition(),api,host,{createThree:canvas=>adapter.createScopedThreejs(canvas)});
+function boot(extra){
+  const g=launch(definition(),api,host,Object.assign({createThree:canvas=>adapter.createScopedThreejs(canvas)},extra));
   for(let i=0;i<8&&!g.data.threeReady;i++){const [id,fn]=frames.entries().next().value||[];assert(fn,'initial frames missing');frames.delete(id);fn();}
   assert(g.data.threeReady);g.stopLoop();return g;
 }
@@ -74,6 +74,52 @@ const broken=definition(),log=console.error;let failed;
 try{console.error=()=>{};failed=launch(broken,api,host,{createThree(){throw Error('unsupported GPU');}});}finally{console.error=log;}
 assert(failed.data.initError);assert(modal&&modal.title==='池塘加载失败');failed.onUnload();
 
+// 稳定性：版本更新、物理分包、内存告警、WebGL 上下文丢失
+{
+  let applied=0,updateReady,loads=0,pending,restarted=0,result='unset',resumed=0;const physicsHost={};
+  Object.assign(api,{getUpdateManager:()=>({onUpdateReady(fn){updateReady=fn;},applyUpdate(){applied++;}}),
+    loadSubpackage:options=>{loads++;assert.equal(options.name,'physics');pending=options;},showLoading(){},hideLoading(){},restartMiniProgram:()=>{restarted++;}});
+  const g=boot({physicsHost,physicsPreloadDelay:60000});
+  assert(updateReady,'update manager must be registered');updateReady();assert.equal(modal.title,'发现新版本');
+  modal.success({confirm:false});assert.equal(applied,0);updateReady();modal.success({confirm:true});assert.equal(applied,1);
+  assert.equal(g.ensurePhysics(error=>{result=error;}),false);assert.equal(loads,1);
+  try{console.error=()=>{};pending.fail({errMsg:'network'});}finally{console.error=log;}
+  assert(result&&result.errMsg==='network');assert.equal(modal.title,'弹弓资源下载失败');
+  const original=g.resumeAdventure;g.suspendedAdventure={stage:'sling'};
+  assert.equal(g.resumeAdventure(),true,'sling save waits for physics');assert.equal(loads,2);
+  assert.equal(g.ensurePhysics(error=>{result=error;}),false);assert.equal(loads,2,'concurrent requests share one download');
+  physicsHost.CANNON=require('cannon');pending.success({});assert.equal(result,null);
+  assert.equal(g.ensurePhysics(()=>{throw Error('ready engines must not call back');}),true);assert.equal(g.physicsEngine(),physicsHost.CANNON);
+  g.suspendedAdventure=null;assert.equal(typeof original,'function');
+  let ratio;g.renderQuality={max:2,current:2,changedAt:0};g.renderer.setPixelRatio=value=>{ratio=value;};
+  fire('MemoryWarning');assert.equal(ratio,1);assert.equal(g.renderQuality.max,1.5);
+  g.renderer.getContext=()=>({isContextLost:()=>true});g.startLoop();fire('Show');
+  assert.equal(modal.title,'画面需要重新载入');assert.equal(g.animationId,null);modal.success({confirm:true});assert.equal(restarted,1);
+  g.onUnload();assert(Object.values(callbacks).every(set=>set.size===0));assert.equal(frames.size,0);
+  ['getUpdateManager','loadSubpackage','showLoading','hideLoading','restartMiniProgram'].forEach(key=>delete api[key]);
+}
+
+// 二进制模型与原 JS 资源逐字节一致
+{
+  const {parse}=require('../minigame/binary-asset'),codec=require('../pages/index/models/codec');
+  for(const name of ['royal-head','royal-fur']){
+    const source=require('../pages/index/models/'+name),packed=parse(fs.readFileSync('assets/models/'+name+'.bin'));let blobs=0;
+    const same=(a,b,at)=>{
+      if(typeof a==='string'&&b instanceof Uint8Array){blobs++;assert(Buffer.from(a,'base64').equals(Buffer.from(b)),at);return;}
+      if(a&&typeof a==='object'){assert.deepEqual(Object.keys(b),Object.keys(a),at);Object.keys(a).forEach(key=>same(a[key],b[key],at+'.'+key));return;}
+      assert.equal(b,a,at);
+    };
+    same(source,packed,name);assert(blobs>0,name+' must contain binary blobs');
+  }
+  const head=require('../pages/index/models/royal-head'),packedHead=parse(fs.readFileSync('assets/models/royal-head.bin'));
+  assert(Buffer.from(codec.decode(head.positions,true)).equals(Buffer.from(codec.decode(packedHead.positions,true))));
+}
+const bundle=fs.readFileSync('minigame-dist/main.js','utf8');
+assert(!bundle.includes('GSSolver')&&!bundle.includes('SAPBroadphase'),'Cannon.js must stay out of the main package');
+assert(!bundle.includes(require('../pages/index/models/royal-head').positions.slice(0,200)),'head mesh must load from the binary asset');
+assert(fs.readFileSync('physics/game.js','utf8').includes('GSSolver'));
+assert.deepEqual(JSON.parse(fs.readFileSync('game.json','utf8')).subpackages,[{name:'physics',root:'physics/'}]);
+
 const pixels=new Uint8Array([255,0,0,255,0,255,0,255,0,0,255,255,255,255,255,255]);
 const png=photo.png(pixels,2,2);assert.equal(Buffer.from(png).subarray(1,4).toString(),'PNG');
 function decode(bytes){let offset=8,parts=[];while(offset<bytes.length){const view=new DataView(bytes.buffer,bytes.byteOffset+offset),size=view.getUint32(0),kind=String.fromCharCode(...bytes.subarray(offset+4,offset+8));if(kind==='IDAT')parts.push(bytes.subarray(offset+8,offset+8+size));offset+=12+size;}return unzlibSync(Buffer.concat(parts));}
@@ -87,4 +133,4 @@ const nativeRows=decode(written.bytes);assert.deepEqual(Array.from(nativeRows.su
 const config=JSON.parse(fs.readFileSync('project.config.json','utf8'));assert.equal(config.compileType,'game');assert.equal(config.appid,'wx50de633ed3efe246');
 assert(fs.existsSync('game.js')&&fs.existsSync('game.json')&&fs.existsSync('minigame-dist/main.js'));
 assert(fs.statSync('minigame-dist/main.js').size<2*1024*1024);
-console.log('PASS: 无 Page/DOM 原生启动 / Canvas 按钮与模态拦截 / 键盘取名与清理 / 多指与零坐标 / 生命周期与续关 / 有界 HUD 更新与释放 / PNG 编码及 WebGL 照片翻转 / 小游戏工程配置');
+console.log('PASS: 无 Page/DOM 原生启动 / Canvas 按钮与模态拦截 / 键盘取名与清理 / 多指与零坐标 / 生命周期与续关 / 有界 HUD 更新与释放 / PNG 编码及 WebGL 照片翻转 / 小游戏工程配置 / 版本更新 / 物理分包 / 内存告警 / 上下文丢失 / 二进制模型');

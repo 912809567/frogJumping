@@ -5,10 +5,11 @@ const root=path.resolve(__dirname,'..');
 const server=http.createServer((req,res)=>{
   const pathname=new URL(req.url,'http://127.0.0.1').pathname;
   if(pathname==='/favicon.ico'){res.writeHead(204);res.end();return;}
-  if(pathname==='/main.js'||/^\/assets\/audio\/[a-z]+\.wav$/.test(pathname)){
+  if(pathname==='/main.js'||pathname==='/physics/game.js'||/^\/assets\/audio\/[a-z]+\.wav$/.test(pathname)||/^\/assets\/models\/[a-z-]+\.bin$/.test(pathname)){
     const file=path.join(root,pathname==='/main.js'?'minigame-dist/main.js':pathname.slice(1));
     if(!fs.existsSync(file)){res.writeHead(404);res.end();return;}
-    res.setHeader('Content-Type',pathname==='/main.js'?'application/javascript; charset=utf-8':'audio/wav');res.end(fs.readFileSync(file));return;
+    const type=pathname.endsWith('.js')?'application/javascript; charset=utf-8':pathname.endsWith('.bin')?'application/octet-stream':'audio/wav';
+    res.setHeader('Content-Type',type);res.end(fs.readFileSync(file));return;
   }
   res.setHeader('Content-Type','text/html; charset=utf-8');
   res.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>荷塘来信 · 小游戏预览</title>
@@ -21,6 +22,10 @@ const server=http.createServer((req,res)=>{
     createInnerAudioContext(){const audio=new Audio(),voice={stop(){audio.pause();audio.currentTime=0;},play(){audio.play().catch(()=>{});},destroy(){audio.pause();audio.removeAttribute('src');audio.load();},onError(fn){audio.onerror=fn;}};Object.defineProperty(voice,'src',{set(value){audio.src='/'+value.replace(/^\\//,'');}});Object.defineProperty(voice,'volume',{set(value){audio.volume=value;}});return voice;},
     vibrateShort(){},showShareMenu(){},showModal(options){const confirm=options.showCancel===false?(alert(options.title+'\\n'+(options.content||'')),true):window.confirm(options.title+'\\n'+(options.content||''));if(options.success)options.success({confirm});},
     showKeyboard(options){const value=prompt('伙伴的名字',options.defaultValue);if(value!==null){for(const fn of keyboards.input||[])fn({value});for(const fn of Array.from(keyboards.confirm||[]))fn({value});}},hideKeyboard(){},
+    showLoading(){},hideLoading(){},
+    loadSubpackage(options){const script=element('script');script.src='/'+options.name+'/game.js';script.onload=()=>{if(options.success)options.success({});};script.onerror=error=>{if(options.fail)options.fail(error);};document.head.append(script);return{onProgressUpdate(){}};},
+    getFileSystemManager(){return{readFileSync(file){const xhr=new XMLHttpRequest();xhr.open('GET','/'+file,false);xhr.overrideMimeType('text/plain; charset=x-user-defined');xhr.send();
+      if(xhr.status!==200)throw Error('readFileSync failed: '+file);const text=xhr.responseText,bytes=new Uint8Array(text.length);for(let i=0;i<text.length;i++)bytes[i]=text.charCodeAt(i)&255;return bytes.buffer;}};},
     canvasToTempFilePath(options){try{const out=element('canvas');out.width=options.destWidth;out.height=options.destHeight;const ratio=screen.width/app.clientWidth;out.getContext('2d').drawImage(screen,options.x*ratio,options.y*ratio,options.width*ratio,options.height*ratio,0,0,out.width,out.height);options.success({tempFilePath:out.toDataURL('image/png')});}catch(error){if(options.fail)options.fail(error);}}
   };
   for(const name of ['TouchStart','TouchMove','TouchEnd','TouchCancel','Hide','Show','WindowResize','ShareAppMessage']){
