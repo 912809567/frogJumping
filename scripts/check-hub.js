@@ -82,6 +82,10 @@ for(const name of ['select','charge','jump','land','perfect','tongue','swallow']
   const wave=fs.readFileSync(path.join(__dirname,'../assets/audio/'+name+'.wav'));
   assert.equal(wave.toString('ascii',0,4),'RIFF');assert.equal(wave.readUInt16LE(22),1);assert(wave.length<40000);
 }
+for(const name of ['ambient-summer','ambient-sunset','ambient-rain','ambient-firefly']){
+  const wave=fs.readFileSync(path.join(__dirname,'../assets/audio/'+name+'.wav'));
+  assert.equal(wave.toString('ascii',0,4),'RIFF');assert.equal(wave.readUInt16LE(22),1);assert(wave.length<70000);
+}
 assert(fs.statSync(path.join(__dirname,'../pages/index/models/royal-fur.js')).size<200000,'离线服饰不能膨胀主包');
 const framing=makeGame();framing.openRoutes();const routes=framing.data.routeList.map(route=>route.id);
 function screenBounds(object,game){

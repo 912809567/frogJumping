@@ -141,6 +141,8 @@ function launch(definition,api,host,options){
         try{
           this.captureReflections();this.showNurturePreview();this.cameraSnap();
           this.setData({threeReady:true,initError:false});this.startLoop();schedulePhysicsPreload();
+          if(this.syncAmbient)this.syncAmbient(this.data.pondTheme);
+          if(pendingLaunchQuery){const q=pendingLaunchQuery;pendingLaunchQuery=null;this.receiveShareCard(q);}
         }catch(error){this.showNativeError(error);}
       };
       this.initFrame=canvas.requestAnimationFrame(()=>{this.initFrame=canvas.requestAnimationFrame(finish);});
@@ -214,6 +216,7 @@ function launch(definition,api,host,options){
   const eventFor=(event,t,end)=>({touches:end?[]:[point(t)],changedTouches:[point(t)],timeStamp:event.timeStamp||Date.now()});
   listen('onTouchStart','offTouchStart',event=>{
     if(primaryTouch!==null||disposed||!game.hud)return;
+    if(game.data.threeReady&&game.data.soundEnabled&&!game.data.paused&&!game.activeAmbientId&&game.syncAmbient)game.syncAmbient(game.data.pondTheme);
     const t=(event.changedTouches||event.touches||[])[0];if(!t)return;
     const p=point(t);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
     primaryTouch=p.identifier;uiTouch=game.hud.touchStart(p);
@@ -230,8 +233,29 @@ function launch(definition,api,host,options){
   listen('onTouchCancel','offTouchCancel',()=>{
     if(primaryTouch===null)return;if(uiTouch&&game.hud)game.hud.gesture=null;else game.onTouchCancel();primaryTouch=null;uiTouch=false;
   });
+  let pendingLaunchQuery=null;
+  const checkShareQuery=options=>{
+    const query=options&&options.query;
+    if(!query||!query.route)return;
+    if(game.data.threeReady)game.receiveShareCard(query);
+    else pendingLaunchQuery=query;
+  };
+  if(api.getLaunchOptionsSync){try{checkShareQuery(api.getLaunchOptionsSync());}catch(error){}}
+  const buildSharePayload=()=>{
+    const value=game.onShareAppMessage();
+    const imageUrl=photo.captureShareCard(game,api);
+    const payload={title:value.title,query:value.query||''};
+    if(imageUrl)payload.imageUrl=imageUrl;
+    return payload;
+  };
+  game.shareFrogCard=function(){
+    const payload=buildSharePayload();
+    if(api.shareAppMessage){try{api.shareAppMessage(payload);return;}catch(error){}}
+    if(api.showModal)api.showModal({title:'青蛙名片已准备好',content:'点击右上角「···」即可转发给好友：\n'+payload.title,showCancel:false});
+  };
+
   listen('onHide','offHide',()=>{primaryTouch=null;uiTouch=false;if(game.hud)game.hud.gesture=null;game.onHide();});
-  listen('onShow','offShow',()=>{if(contextLost||game.checkContextLost())return;game.onShow();});
+  listen('onShow','offShow',options=>{if(contextLost||game.checkContextLost())return;game.onShow();checkShareQuery(options);});
   listen('onMemoryWarning','offMemoryWarning',()=>game.handleMemoryWarning());
   listen('onWindowResize','offWindowResize',()=>{
     if(!game.data.threeReady||disposed)return;
@@ -240,8 +264,15 @@ function launch(definition,api,host,options){
     game.hud.resize(info);if(game.returnWorld&&game.returnWorld.active)game.returnWorld.update(Date.now(),0);else game.cameraSnap();game.requestUiFrame();
   });
   if(api.onShareAppMessage){
-    const share=()=>{const value=game.onShareAppMessage();return{title:value.title,query:''};};
+    const share=()=>buildSharePayload();
     api.onShareAppMessage(share);listeners.push(()=>{if(api.offShareAppMessage)api.offShareAppMessage(share);});
+  }
+  if(api.onShareTimeline){
+    const timeline=()=>{
+      const value=game.onShareTimeline();const imageUrl=photo.captureShareCard(game,api);
+      const payload={title:value.title,query:value.query||''};if(imageUrl)payload.imageUrl=imageUrl;return payload;
+    };
+    api.onShareTimeline(timeline);listeners.push(()=>{if(api.offShareTimeline)api.offShareTimeline(timeline);});
   }
   const dispose=game.disposeThree;
   game.disposeThree=function(){if(this.hud){this.hud.dispose();this.hud=null;}dispose.call(this);};

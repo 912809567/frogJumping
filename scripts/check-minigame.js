@@ -81,12 +81,17 @@ const broken=definition(),log=console.error;let failed;
 try{console.error=()=>{};failed=launch(broken,api,host,{createThree(){throw Error('unsupported GPU');}});}finally{console.error=log;}
 assert(failed.data.initError);assert(modal&&modal.title==='池塘加载失败');failed.onUnload();
 
-// 稳定性：版本更新、物理分包、内存告警、WebGL 上下文丢失
+// 稳定性：版本更新、物理分包、内存告警、WebGL 上下文丢失、分享名片与串门欢迎卡
 {
-  let applied=0,updateReady,loads=0,pending,restarted=0,result='unset',resumed=0;const physicsHost={};
+  let applied=0,updateReady,loads=0,pending,restarted=0,result='unset',sharedPayload=null;const physicsHost={};
   Object.assign(api,{getUpdateManager:()=>({onUpdateReady(fn){updateReady=fn;},applyUpdate(){applied++;}}),
-    loadSubpackage:options=>{loads++;assert.equal(options.name,'physics');pending=options;},showLoading(){},hideLoading(){},restartMiniProgram:()=>{restarted++;}});
+    loadSubpackage:options=>{loads++;assert.equal(options.name,'physics');pending=options;},showLoading(){},hideLoading(){},restartMiniProgram:()=>{restarted++;},
+    getLaunchOptionsSync:()=>({query:{route:'coder',name:'代码蛙',best:'15'}}),
+    shareAppMessage:payload=>{sharedPayload=payload;}});
   const g=boot({physicsHost,physicsPreloadDelay:60000});
+  assert(g.data.visitorCard&&g.data.visitorCard.routeId==='coder'&&g.data.visitorCard.name==='代码蛙','通过分享链接进入应展示好友串门卡片');
+  g.shareFrogCard();assert(sharedPayload&&sharedPayload.query.includes('route='),'主动分享应携带名片参数');
+  g.dismissVisitorCard();assert.equal(g.data.visitorCard,null);
   assert(updateReady,'update manager must be registered');updateReady();assert.equal(modal.title,'发现新版本');
   modal.success({confirm:false});assert.equal(applied,0);updateReady();modal.success({confirm:true});assert.equal(applied,1);
   assert.equal(g.ensurePhysics(error=>{result=error;}),false);assert.equal(loads,1);
@@ -103,7 +108,7 @@ assert(failed.data.initError);assert(modal&&modal.title==='池塘加载失败');
   g.renderer.getContext=()=>({isContextLost:()=>true});g.startLoop();fire('Show');
   assert.equal(modal.title,'画面需要重新载入');assert.equal(g.animationId,null);modal.success({confirm:true});assert.equal(restarted,1);
   g.onUnload();assert(Object.values(callbacks).every(set=>set.size===0));assert.equal(frames.size,0);
-  ['getUpdateManager','loadSubpackage','showLoading','hideLoading','restartMiniProgram'].forEach(key=>delete api[key]);
+  ['getUpdateManager','loadSubpackage','showLoading','hideLoading','restartMiniProgram','getLaunchOptionsSync','shareAppMessage'].forEach(key=>delete api[key]);
 }
 
 // 二进制模型与原 JS 资源逐字节一致

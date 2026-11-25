@@ -90,7 +90,10 @@ module.exports = function enhance(page) {
     this.lastTick = now;
     if (this.resetRenderQualityWindow) this.resetRenderQualityWindow(now, 2000);
     this.setData({ paused: false });
-    if (this.data.threeReady && !this.unloaded) this.startLoop();
+    if (this.data.threeReady && !this.unloaded) {
+      this.startLoop();
+      if (this.syncAmbient) this.syncAmbient(this.data.pondTheme);
+    }
   };
 
   page.onUnload = function () {

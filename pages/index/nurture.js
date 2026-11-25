@@ -97,9 +97,74 @@ module.exports = function attachNurture(page, api) {
       const snacks = saved && saved.version === 1 && Number.isFinite(saved.snacks)
         ? clamp(Math.floor(saved.snacks), 0, 999)
         : clamp(Math.floor(fallbackSnacks), 0, 999);
-      this.pondAccount = { version: 1, snacks, pondTheme: theme, unlockedThemes: Array.from(unlocked) };
+      const endlessBest = saved && saved.version === 1 && Number.isFinite(saved.endlessBest)
+        ? clamp(Math.floor(saved.endlessBest), 0, 9999) : 0;
+      const metCount = this.loadCollection ? this.loadCollection().length : 0;
+      const endlessUnlocked = !!(
+        (saved && saved.version === 1 && saved.endlessUnlocked)
+        || endlessBest > 0 || metCount > 0 || (this.companion && this.companion.adventures > 0)
+      );
+      this.pondAccount = {
+        version: 1, snacks, pondTheme: theme, unlockedThemes: Array.from(unlocked),
+        endlessBest, endlessUnlocked
+      };
       this.syncPondAccountData();
       if (!this.data.petQuote) this.setData({ petQuote: this.routeQuote((this.companion && this.companion.routeId) || "king", 0) });
+    },
+
+    unlockEndlessMode() {
+      if (!this.pondAccount) this.loadPondAccount();
+      if (this.pondAccount.endlessUnlocked) return;
+      this.pondAccount.endlessUnlocked = true;
+      this.syncPondAccountData();
+      this.savePondAccount();
+    },
+
+    recordEndlessResult(jumps) {
+      if (!this.pondAccount) this.loadPondAccount();
+      const score = Math.max(0, Math.floor(jumps || 0));
+      const isNewBest = score > (this.pondAccount.endlessBest || 0);
+      if (isNewBest) this.pondAccount.endlessBest = score;
+      this.pondAccount.endlessUnlocked = true;
+      const reward = score >= 5 ? Math.min(12, Math.floor(score / 5)) : (score >= 3 ? 1 : 0);
+      if (reward > 0) this.pondAccount.snacks = clamp(this.pondAccount.snacks + reward, 0, 999);
+      this.syncPondAccountData();
+      this.savePondAccount();
+      return { isNewBest, best: this.pondAccount.endlessBest, reward };
+    },
+
+    receiveShareCard(query) {
+      if (!query || !query.route) return false;
+      const route = this.getRouteById(String(query.route));
+      if (!route) return false;
+      let rawName = "";
+      try { rawName = decodeURIComponent(String(query.name || "")); } catch (error) { rawName = String(query.name || ""); }
+      const name = rawName.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 12) || "小荷";
+      const best = Math.max(0, Math.min(9999, Math.floor(Number(query.best) || 0)));
+      this.setData({
+        visitorCard: {
+          routeId: route.id,
+          routeName: route.name,
+          name,
+          best,
+          quote: this.routeQuote(route.id, 0)
+        }
+      });
+      return true;
+    },
+
+    dismissVisitorCard() {
+      this.setData({ visitorCard: null });
+      this.playSound("select");
+    },
+
+    adoptFromVisitor() {
+      const card = this.data.visitorCard;
+      this.setData({ visitorCard: null });
+      if (!card || !this.data.threeReady) return;
+      this.openRoutes(this.companion ? "new" : undefined);
+      this.selectRoute({ currentTarget: { dataset: { id: card.routeId } } });
+      this.playSound("select");
     },
 
     sharedSnacks() {
@@ -131,7 +196,9 @@ module.exports = function attachNurture(page, api) {
         statusSnacks: this.pondAccount.snacks,
         pondTheme: this.pondAccount.pondTheme,
         unlockedThemes: unlocked.slice(),
-        pondThemeList: list
+        pondThemeList: list,
+        endlessBest: this.pondAccount.endlessBest || 0,
+        endlessUnlocked: !!this.pondAccount.endlessUnlocked
       });
     },
 
@@ -259,6 +326,7 @@ module.exports = function attachNurture(page, api) {
       const route = this.getRouteById(pet.routeId);
       const stage = this.getGrowthStage(pet.growth);
       this.clearChallengeObjects();
+      this.endlessMode = false;
       this.companionActive = true;
       this.perk = PERKS[route.perk];
       this.careCounts = Object.assign({ feed: 0, pet: 0, play: 0 }, pet.careCounts);

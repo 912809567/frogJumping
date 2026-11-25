@@ -782,7 +782,41 @@ specialBugs.aimHit = specialBugs.insects[0];
 specialBugs.fireTongue();
 assert.equal(specialBugs.tongueState, null, "发晕期间不能伸舌头");
 specialBugs.disposeThree();
-console.log("PASS: 完美连击升调与双层金环 / 19 条路线台词 / 多泡泡与金色双倍 / 跨伙伴莲子与荷塘氛围皮肤 / 多伙伴名册 / 金萤虫与红蜂");
+
+// 无尽荷塘：超过 20 跳不结束、每跳可达、落水记最高分并给莲子
+const endlessStore = {};
+const endlessApi = {
+  getStorageSync: (k) => endlessStore[k],
+  setStorageSync: (k, v) => { endlessStore[k] = JSON.parse(JSON.stringify(v)); }
+};
+const endlessGame = makeGame(endlessApi);
+endlessGame.selectRoute({ currentTarget: { dataset: { id: "king" } } });
+endlessGame.beginCompanion("无尽蛙");
+endlessGame.data.growth = 140; endlessGame.data.canChallenge = true;
+assert.equal(endlessGame.data.endlessUnlocked, false, "未通关前无尽模式应未解锁");
+endlessGame.showFinal();
+assert.equal(endlessGame.data.endlessUnlocked, true, "通关后应解锁无尽荷塘");
+endlessGame.resumeCompanion();
+endlessGame.startEndlessMode();
+assert(endlessGame.data.endlessMode && endlessGame.data.attempts === 1);
+for (let i = 0; i < 24; i += 1) performJump(endlessGame);
+assert.equal(endlessGame.data.jumps, 24, "无尽荷塘应可连续跳超过 20 跳");
+assert.equal(endlessGame.data.phase, "levelJump", "无尽荷塘满 20 跳不能切进捕虫关");
+const snacksBeforeFall = endlessGame.data.snacks;
+stubLanding(endlessGame, 5);
+assert(endlessGame.data.gameOver, "无尽荷塘落水应结束本局");
+assert.equal(endlessGame.data.endlessBest, 24, "无尽荷塘应记录最高跳数");
+assert(endlessGame.data.snacks > snacksBeforeFall, "无尽荷塘应按跳数奖励莲子");
+const shareData = endlessGame.onShareAppMessage();
+assert(shareData.query.includes("route=king") && shareData.query.includes("best=24"), "分享 query 应带路线与无尽成绩");
+endlessGame.receiveShareCard({ route: "ceo", name: "霸总蛙", best: "18" });
+assert(endlessGame.data.visitorCard && endlessGame.data.visitorCard.routeId === "ceo");
+endlessGame.adoptFromVisitor();
+assert.equal(endlessGame.data.phase, "route");
+assert.equal(endlessGame.data.selectedRouteId, "ceo");
+assert.equal(endlessGame.data.visitorCard, null);
+endlessGame.disposeThree();
+console.log("PASS: 完美连击升调与双层金环 / 19 条路线台词 / 多泡泡与金色双倍 / 跨伙伴莲子与荷塘氛围皮肤 / 多伙伴名册 / 金萤虫与红蜂 / 无尽荷塘与分享名片");
 
 console.log("PASS: 养成 3 阶段（轮流 " + rotate.actions + " 次 / 只喂食 " + spam.actions + " 次）" +
   " / 5 种路线被动 / 输入缓冲 / 20 跳可达 / 落水机会 / 完美落叶 / 沉叶+阵风 / 捕虫射程+受惊 / 10 虫通关 / 路线收集 / 结算评级+来信+分享 / 转场清理" +

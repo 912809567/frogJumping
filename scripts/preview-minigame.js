@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'..');
 const server=http.createServer((req,res)=>{
   const pathname=new URL(req.url,'http://127.0.0.1').pathname;
   if(pathname==='/favicon.ico'){res.writeHead(204);res.end();return;}
-  if(pathname==='/main.js'||pathname==='/physics/game.js'||/^\/assets\/audio\/[a-z]+\.wav$/.test(pathname)||/^\/assets\/models\/[a-z-]+\.bin$/.test(pathname)){
+  if(pathname==='/main.js'||pathname==='/physics/game.js'||/^\/assets\/audio\/[a-z-]+\.wav$/.test(pathname)||/^\/assets\/models\/[a-z-]+\.bin$/.test(pathname)){
     const file=path.join(root,pathname==='/main.js'?'minigame-dist/main.js':pathname.slice(1));
     if(!fs.existsSync(file)){res.writeHead(404);res.end();return;}
     const type=pathname.endsWith('.js')?'application/javascript; charset=utf-8':pathname.endsWith('.bin')?'application/octet-stream':'audio/wav';
@@ -19,7 +19,7 @@ const server=http.createServer((req,res)=>{
   const info=()=>({windowWidth:app.clientWidth,windowHeight:app.clientHeight,pixelRatio:devicePixelRatio,statusBarHeight:24,safeArea:{top:24,bottom:app.clientHeight-20,left:0,right:app.clientWidth}});
   window.wx={__preview:true,createCanvas(){const canvas=element('canvas');if(!screen){screen=canvas;canvas.id='screen';app.append(canvas);}return canvas;},createImage:()=>new Image(),getWindowInfo:info,getSystemInfoSync:info,
     getStorageSync:key=>JSON.parse(localStorage.getItem(key)||'null'),setStorageSync:(key,value)=>localStorage.setItem(key,JSON.stringify(value)),
-    createInnerAudioContext(){const audio=new Audio(),voice={stop(){audio.pause();audio.currentTime=0;},play(){audio.play().catch(()=>{});},destroy(){audio.pause();audio.removeAttribute('src');audio.load();},onError(fn){audio.onerror=fn;}};Object.defineProperty(voice,'src',{set(value){audio.src='/'+value.replace(/^\\//,'');}});Object.defineProperty(voice,'volume',{set(value){audio.volume=value;}});Object.defineProperty(voice,'playbackRate',{get(){return audio.playbackRate;},set(value){audio.playbackRate=value;}});return voice;},
+    createInnerAudioContext(){const audio=new Audio(),voice={stop(){audio.pause();audio.currentTime=0;},play(){audio.play().catch(()=>{});},destroy(){audio.pause();audio.removeAttribute('src');audio.load();},onError(fn){audio.onerror=fn;}};Object.defineProperty(voice,'src',{set(value){audio.src='/'+value.replace(/^\\//,'');}});Object.defineProperty(voice,'volume',{set(value){audio.volume=value;}});Object.defineProperty(voice,'loop',{get(){return audio.loop;},set(value){audio.loop=!!value;}});Object.defineProperty(voice,'playbackRate',{get(){return audio.playbackRate;},set(value){audio.playbackRate=value;}});return voice;},
     vibrateShort(){},showShareMenu(){},showModal(options){const confirm=options.showCancel===false?(alert(options.title+'\\n'+(options.content||'')),true):window.confirm(options.title+'\\n'+(options.content||''));if(options.success)options.success({confirm});},
     showKeyboard(options){const value=prompt('伙伴的名字',options.defaultValue);if(value!==null){for(const fn of keyboards.input||[])fn({value});for(const fn of Array.from(keyboards.confirm||[]))fn({value});}},hideKeyboard(){},
     showLoading(){},hideLoading(){},

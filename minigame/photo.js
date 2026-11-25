@@ -36,4 +36,28 @@ function capture(game,api,options) {
     options.success({tempFilePath:file,persistent:true});
   }catch(error){if(options.fail)options.fail(error);}
 }
-module.exports={capture,png};
+function captureShareCard(game,api) {
+  try {
+    if(!game||!game.renderer||!game.renderer.getContext||!api||api.__preview||!api.getFileSystemManager||!api.env)return '';
+    const gl=game.renderer.getContext();
+    if(!gl||!gl.drawingBufferWidth||!gl.drawingBufferHeight||(gl.isContextLost&&gl.isContextLost()))return '';
+    game.renderWorld();
+    const w=gl.drawingBufferWidth,h=gl.drawingBufferHeight;
+    // 微信分享图推荐 5:4 比例（居中裁取角色区域，不含 HUD 按钮）
+    const cropW=Math.min(w,Math.floor(h*1.25)),cropH=Math.min(h,Math.floor(cropW*0.8));
+    const sx=Math.max(0,Math.floor((w-cropW)/2)),sy=Math.max(0,Math.floor((h-cropH)/2));
+    const source=new Uint8Array(cropW*cropH*4);
+    gl.readPixels(sx,sy,cropW,cropH,gl.RGBA,gl.UNSIGNED_BYTE,source);
+    const outW=250,outH=200,pixels=new Uint8Array(outW*outH*4);
+    for(let row=0;row<outH;row++)for(let col=0;col<outW;col++){
+      const from=((cropH-1-Math.min(cropH-1,Math.floor(row*cropH/outH)))*cropW+Math.min(cropW-1,Math.floor(col*cropW/outW)))*4,to=(row*outW+col)*4;
+      pixels[to]=source[from];pixels[to+1]=source[from+1];pixels[to+2]=source[from+2];pixels[to+3]=255;
+    }
+    const manager=api.getFileSystemManager(),folder=api.env.USER_DATA_PATH+'/pond-memories';
+    try{manager.mkdirSync(folder,true);}catch(error){}
+    const file=folder+'/share-card.png';
+    manager.writeFileSync(file,png(pixels,outW,outH).buffer);
+    return file;
+  }catch(error){return '';}
+}
+module.exports={capture,captureShareCard,png};

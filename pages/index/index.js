@@ -37,6 +37,10 @@ const page = {
     routeTotal: MALE_ROUTES.length + FEMALE_ROUTES.length,
     jumps: 0,
     jumpGoal: JUMP_GOAL,
+    endlessMode: false,
+    endlessBest: 0,
+    endlessUnlocked: false,
+    visitorCard: null,
     attempts: JUMP_LIVES,
     attemptSlots: [0, 1, 2],
     perfect: 0,
@@ -411,6 +415,7 @@ const page = {
       col.needsUpdate = true;
     }
     this.buildThemeParticles(theme.fx);
+    if (this.data.threeReady && this.syncAmbient) this.syncAmbient(theme.id);
   },
 
   buildThemeParticles(kind) {
@@ -794,10 +799,12 @@ const page = {
     this.petStage = 0;
     this.careCounts = { feed: 0, pet: 0, play: 0 };
     this.perk = null;
+    this.endlessMode = false;
     this.sinkStart = 0;
     this.sinkLeaf = null;
     this.setData({
       phase: destination === "home" ? "home" : "route", choosingNew: destination === "new",
+      endlessMode: false,
       routeList: destination === "home" ? [] : this.routesForSelection(),
       selectedRouteId: "", selectedRouteName: "", selectedPerkName: "", selectedPerkText: "",
       skillName: "", skillText: "", skillSymbol: "",
@@ -972,9 +979,11 @@ const page = {
       this.rewardStored = this.saveCompanion();
     }
     this.applyPondTheme(this.data.pondTheme);
+    this.unlockEndlessMode();
 
     this.setData({
       phase: "final", transition: false, newRoute: firstMeet, chapter: "成长纪念",
+      endlessMode: false,
       grade, gradeTag: isBest ? "个人最佳" : "", perfect, falls,
       runTimeText: this.formatTime(elapsed), letterLines: letter,
       bestGrade: best.grade, bestTimeText: this.formatTime(best.time),
@@ -986,20 +995,37 @@ const page = {
   },
 
   onShareAppMessage() {
-    const route = this.data.selectedRouteName;
+    const routeId = this.data.selectedRouteId || (this.companion && this.companion.routeId) || "";
+    const routeObj = routeId ? this.getRouteById(routeId) : null;
+    const route = this.data.selectedRouteName || (routeObj ? routeObj.name : "");
+    const name = this.data.selectedRouteId ? this.data.petName : (this.companion ? this.companion.name : "小荷");
+    const best = this.data.endlessBest || 0;
+    const query = routeId
+      ? "route=" + encodeURIComponent(routeId) + "&name=" + encodeURIComponent(name) + (best ? "&best=" + best : "")
+      : "";
     return {
       title: route
-        ? "我的" + this.data.petName + "是一只" + route + " · " + (this.data.careTitle || "荷塘来信")
+        ? "我的" + name + "是一只" + route + " · " + (this.data.careTitle || (best ? "无尽荷塘 " + best + " 跳" : "荷塘来信"))
         : "荷塘来信 · 养一只蝌蚪，看它成为谁",
-      path: "/pages/index/index"
+      query,
+      path: query ? "/pages/index/index?" + query : "/pages/index/index"
     };
   },
 
   onShareTimeline() {
-    const route = this.data.selectedRouteName;
+    const payload = this.onShareAppMessage();
+    const route = this.data.selectedRouteName || (this.companion && this.getRouteById(this.companion.routeId) ? this.getRouteById(this.companion.routeId).name : "");
     return {
-      title: route ? "荷塘来信 · 我养出了一只" + route : "荷塘来信 · 养一只蝌蚪，看它成为谁"
+      title: route ? "荷塘来信 · 我养出了一只" + route : "荷塘来信 · 养一只蝌蚪，看它成为谁",
+      query: payload.query
     };
+  },
+
+  shareFrogCard() {
+    const payload = this.onShareAppMessage();
+    if (typeof wx !== "undefined" && wx.showModal) {
+      wx.showModal({ title: "青蛙名片", content: "点击右上角转发给好友：\n" + payload.title, showCancel: false });
+    }
   },
 
   // ------------------------------------------------------------------ 特效与返程

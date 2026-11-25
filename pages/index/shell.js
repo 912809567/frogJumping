@@ -69,7 +69,10 @@ module.exports = function shell(page) {
       const key = event.currentTarget.dataset.key;
       if (!['soundEnabled', 'hapticEnabled'].includes(key)) return;
       this.setData({ [key]: !this.data[key] });
-      if (key === 'soundEnabled' && !this.data.soundEnabled) this.stopAllSounds();
+      if (key === 'soundEnabled') {
+        if (!this.data.soundEnabled) this.stopAllSounds();
+        else if (this.syncAmbient) this.syncAmbient(this.data.pondTheme);
+      }
       this.savePreferences();
       if (key === 'soundEnabled') this.playSound('select');
       if (key === 'hapticEnabled') this.vibrate('light');
@@ -113,14 +116,51 @@ module.exports = function shell(page) {
       if (voice) { try { voice.stop(); } catch (error) {} }
     },
 
+    syncAmbient(themeId) {
+      const id = ['summer', 'sunset', 'rain', 'firefly'].includes(themeId) ? themeId : 'summer';
+      if (!this.data.soundEnabled || this.data.paused || this.unloaded || typeof wx === 'undefined' || !wx.createInnerAudioContext) {
+        this.stopAmbient();
+        return;
+      }
+      if (this.activeAmbientId === id && this.ambientVoices && this.ambientVoices[id]) {
+        try { this.ambientVoices[id].play(); } catch (error) {}
+        return;
+      }
+      this.stopAmbient();
+      this.ambientVoices = this.ambientVoices || {};
+      try {
+        let voice = this.ambientVoices[id];
+        if (!voice) {
+          voice = wx.createInnerAudioContext();
+          voice.src = this.assetPath ? this.assetPath('assets/audio/ambient-' + id + '.wav') : '/assets/audio/ambient-' + id + '.wav';
+          voice.loop = true;
+          voice.volume = .16;
+          voice.obeyMuteSwitch = true;
+          if (voice.onError) voice.onError(() => {});
+          this.ambientVoices[id] = voice;
+        }
+        this.activeAmbientId = id;
+        voice.play();
+      } catch (error) {}
+    },
+
+    stopAmbient() {
+      const voices = this.ambientVoices || {};
+      Object.keys(voices).forEach(key => { try { voices[key].stop(); } catch (error) {} });
+      this.activeAmbientId = '';
+    },
+
     stopAllSounds() {
       Object.keys(this.audioVoices || {}).forEach(name => this.stopSound(name));
+      this.stopAmbient();
     },
 
     disposeAudio() {
       this.stopAllSounds();
       Object.keys(this.audioVoices || {}).forEach(name => { try { this.audioVoices[name].destroy(); } catch (error) {} });
+      Object.keys(this.ambientVoices || {}).forEach(name => { try { this.ambientVoices[name].destroy(); } catch (error) {} });
       this.audioVoices = null;
+      this.ambientVoices = null;
     }
   });
 };

@@ -35,8 +35,24 @@ module.exports = function attachJumpLevel(page) {
       if (!this.resumeAdventure()) this.setupJumpLevel();
     },
 
-    setupJumpLevel() {
-      this.beginAdventure();
+    startEndlessMode() {
+      if (this.data.careBusy || !this.data.threeReady) return;
+      if (!this.data.canChallenge && !this.endlessMode) {
+        this.setData({ message: "先陪它长成小青蛙，再挑战无尽荷塘。" });
+        return;
+      }
+      if (!this.data.endlessUnlocked) {
+        this.setData({ message: "通关一次成长试炼后解锁无尽荷塘。" });
+        return;
+      }
+      this.setupJumpLevel({ endless: true });
+    },
+
+    setupJumpLevel(options) {
+      const endless = !!(options && options.endless);
+      this.endlessMode = endless;
+      this.endlessSeed = (Date.now() % 997) + 17;
+      if (!endless) this.beginAdventure();
       this.adventureFinishedAt = 0;
       this.clearChallengeObjects();
       this.removeObject(this.petGroup);
@@ -65,11 +81,13 @@ module.exports = function attachJumpLevel(page) {
       this.checkpointState = { jumps: 0, perfect: 0, position: first.position.clone(), heading: this.trailHeading };
       this.removeObject(this.homeDecor); this.homeDecor = null;
       this.floatLeaves.visible = false;
-      const lives = JUMP_LIVES + this.perkLives();
+      const lives = (endless ? 1 : JUMP_LIVES) + this.perkLives();
 
       this.setData({
         phase: "levelJump",
+        endlessMode: endless,
         jumps: 0,
+        jumpCombo: 0,
         jumpGoal: JUMP_GOAL,
         attempts: lives,
         attemptSlots: Array.from({ length: lives }, (unused, i) => i),
@@ -84,18 +102,18 @@ module.exports = function attachJumpLevel(page) {
         chargePercent: 0,
         chargeTone: "far",
         chargeHint: "长按蓄力",
-        failTitle: "荷叶小径",
+        failTitle: endless ? "无尽荷塘" : "荷叶小径",
         failUnit: "片荷叶",
-        chapter: "01 · 荷叶小径",
+        chapter: endless ? "无尽荷塘" : "01 · 荷叶小径",
         transition: false,
         checkpoint: 0, resting: false, rewardText: "",
-        message: "长按蓄力，松手起跳。水面上的圆环就是落点。"
+        message: endless ? "能连续跳多远？每 5 跳恢复本领并赚莲子。" : "长按蓄力，松手起跳。水面上的圆环就是落点。"
       });
       this.applyDistrict(0);
       this.resetSkill();
       this.cameraSnap();
       this.syncChargeTarget();
-      this.saveAdventure();
+      if (!endless) this.saveAdventure();
     },
 
     applyDistrict(jumps) {
@@ -203,7 +221,25 @@ module.exports = function attachJumpLevel(page) {
       if (status !== this.data.skillStatus) this.setData({ skillStatus: status });
     },
 
+    endlessPlanFor(index) {
+      if (index <= 0) return { gap: 2.95, size: 1 };
+      const seed = (this.endlessSeed || 31) + index * 37;
+      const rand = (k) => { const x = Math.sin((seed + k * 19.7) * 12.9898) * 43758.5453; return x - Math.floor(x); };
+      const diff = clamp(index / 25, 0, 1);
+      const gap = Number((2.92 + diff * 0.48 + rand(1) * 0.36).toFixed(2));
+      const size = index > 8 ? Number((1 - diff * 0.12 - rand(2) * 0.04).toFixed(2)) : 1;
+      const plan = { gap, size };
+      if (index >= 3 && rand(3) < 0.32 + diff * 0.25) {
+        plan.drift = Number((0.28 + diff * 0.20).toFixed(2));
+        plan.driftSpeed = Number((1.25 + diff * 0.65).toFixed(2));
+      }
+      if (index >= 7 && rand(4) < 0.24 + diff * 0.14) plan.sink = true;
+      if (index >= 11 && rand(5) < 0.22 + diff * 0.20) plan.wind = Number((0.28 + diff * 0.20).toFixed(2));
+      return plan;
+    },
+
     planFor(index) {
+      if (this.endlessMode) return this.endlessPlanFor(index);
       return JUMP_PLAN[clamp(index - 1, 0, JUMP_PLAN.length - 1)];
     },
 
@@ -589,7 +625,7 @@ module.exports = function attachJumpLevel(page) {
       });
       if (perfect) this.recordMemory("perfect", { title: "第一次正中叶心", note: "轻轻一跃，稳稳落在荷叶中央。", stage: 3 });
 
-      if (jumps >= JUMP_GOAL) {
+      if (!this.endlessMode && jumps >= JUMP_GOAL) {
         this.saveAdventure();
         this.scheduleScene("setupBugLevel", 780);
         this.setData({ chapter: "01 · 通关" });
@@ -598,6 +634,16 @@ module.exports = function attachJumpLevel(page) {
 
       this.removeObject(this.jumpLeaves[0]);
       this.jumpLeaves = [leaf, this.createNextGameLeaf(leaf, jumps)];
+      if (this.endlessMode) {
+        this.checkpointState = { jumps, perfect: perfectCount, position: leaf.position.clone(), heading: this.trailHeading, combo: this.data.jumpCombo };
+        if (jumps % 5 === 0) {
+          this.sinkStart = 0; this.sinkLeaf = null;
+          this.setData({ resting: false, checkpoint: jumps, message: "突破 " + jumps + " 跳！本领已恢复" });
+          this.applyDistrict(jumps % 20); this.resetSkill();
+        }
+        this.syncChargeTarget();
+        return;
+      }
       if (jumps % 5 === 0) {
         this.checkpointState = { jumps, perfect: perfectCount, position: leaf.position.clone(), heading: this.trailHeading, combo: this.data.jumpCombo };
         this.sinkStart = 0; this.sinkLeaf = null;
@@ -615,6 +661,13 @@ module.exports = function attachJumpLevel(page) {
       this.runFalls = (this.runFalls || 0) + 1;
       if (attempts <= 0) {
         this.setData({ attempts: 0, falls: this.runFalls });
+        if (this.endlessMode) {
+          const res = this.recordEndlessResult(this.data.jumps);
+          const summary = (res.isNewBest ? "新纪录！" : "本局 ") + this.data.jumps + " 跳（最高 " + res.best + " 跳）"
+            + (res.reward ? " · 收获莲子 ×" + res.reward : "");
+          this.failRun(summary, true);
+          return;
+        }
         this.saveAdventure();
         this.failRun("机会用完了，可以从第 " + this.data.checkpoint + " 片荷叶继续。", true);
         return;
@@ -635,7 +688,7 @@ module.exports = function attachJumpLevel(page) {
       }
       this.vibrate("heavy");
       this.respawnAt = Date.now() + RESPAWN_DELAY;
-      this.saveAdventure();
+      if (!this.endlessMode) this.saveAdventure();
     },
 
     updateRespawn(now) {
@@ -683,8 +736,9 @@ module.exports = function attachJumpLevel(page) {
     },
 
     retryLevel() {
-      if (this.data.phase === "levelBug") this.setupBugLevel();
-      else if (this.checkpointState) {
+      if (this.data.phase === "levelBug") { this.setupBugLevel(); this.saveAdventure(); return; }
+      if (this.endlessMode) { this.startEndlessMode(); return; }
+      if (this.checkpointState) {
         this.clearChallengeObjects();
         this.setData({ attempts: JUMP_LIVES + this.perkLives(), gameOver: false });
         this.restoreCheckpoint();

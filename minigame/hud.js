@@ -187,8 +187,15 @@ class Hud {
     const cw=(w-16)/3;
     [['喂食','feed'],['抚摸','pet'],['追泡泡','play']].forEach((item,i)=>this.button(i===0&&d.snacks?'莲子 ×'+d.snacks:item[0],x+i*(cw+8),y+112,cw,42,'careAction',{type:item[1]},{disabled:d.careBusy}));
     let next=y+164;if(d.souvenirs.length){this.text(d.souvenirs.join(' · '),x,next,11,C.gold,w,{center:true,maxLines:1});next+=24;}
-    if(d.canChallenge)this.button(d.hasAdventure?'继续冒险':'出发，荷叶小径',x,next,w,44,'startJumpChallenge',null,{primary:true,disabled:d.careBusy});
-    else this.text(d.stageName,x,next+12,12,C.muted,w,{center:true,maxLines:1});
+    if(d.canChallenge){
+      if(d.endlessUnlocked){
+        const left=Math.round((w-8)*.54),right=w-8-left;
+        this.button(d.hasAdventure?'继续冒险':'出发闯关',x,next,left,44,'startJumpChallenge',null,{primary:true,disabled:d.careBusy});
+        this.button(d.endlessBest?'无尽 · '+d.endlessBest+'跳':'无尽荷塘',x+left+8,next,right,44,'startEndlessMode',null,{active:true,disabled:d.careBusy,font:13});
+      }else{
+        this.button(d.hasAdventure?'继续冒险':'出发，荷叶小径',x,next,w,44,'startJumpChallenge',null,{primary:true,disabled:d.careBusy});
+      }
+    }else this.text(d.stageName,x,next+12,12,C.muted,w,{center:true,maxLines:1});
     this.button('回到首页',x,next+49,w,32,'goHome',null,{quiet:true});
     if(d.storageNotice)this.notice(d.storageNotice);
   }
@@ -199,7 +206,7 @@ class Hud {
     if(!d.hasCompanion){this.text('池塘里，有一只小蝌蚪正等着你。',x,y+40,14,C.muted,w);this.button('去遇见它',x,y+83,w,46,'startGame',null,{primary:true,disabled:!d.threeReady});return;}
     this.text(d.savedPetRoute+' · '+d.savedPetStage,x,y+33,12,C.muted,w,{maxLines:1});
     this.text('成长 '+d.statusGrowth+'%',x,y+58,12,C.muted);this.bar(x,y+79,w,d.statusGrowth);this.needs([d.statusFood,d.statusAffection,d.statusPlay],y+96);
-    this.text('冒险 '+d.statusAdventures+' 次 · 莲子 '+d.statusSnacks+' 颗',x,y+144,13,C.muted,w,{center:true});
+    this.text('冒险 '+d.statusAdventures+' 次 · 莲子 '+d.statusSnacks+' 颗'+(d.endlessBest?' · 无尽 '+d.endlessBest+' 跳':''),x,y+144,13,C.muted,w,{center:true,maxLines:1});
     this.text(d.statusPerk+' · '+d.statusSkill,x,y+167,12,C.gold,w,{center:true});
     let next=y+194;
     if(d.rosterList&&d.rosterList.length>1){
@@ -213,7 +220,9 @@ class Hud {
       this.scrollEnd();
       next+=areaH+24;
     }
-    this.button('继续陪伴',x,next,w,44,'resumeCompanion',null,{primary:true,disabled:!d.threeReady});
+    const mainW=Math.round((w-8)*.62),shareW=w-8-mainW;
+    this.button('继续陪伴',x,next,mainW,44,'resumeCompanion',null,{primary:true,disabled:!d.threeReady});
+    this.button('分享名片',x+mainW+8,next,shareW,44,'shareFrogCard',null,{font:13});
     this.button('结识新的伙伴',x,next+52,w,34,'openNewCompanion',null,{quiet:true});
   }
 
@@ -239,7 +248,8 @@ class Hud {
 
   challenge(d){
     const s=this.safeTop,jump=d.phase==='levelJump',count=jump?d.jumps:d.bugs,ink=this.sceneInk(d),muted=this.sceneMuted(d);
-    this.text(count,20,s+66,32,ink,64,{bold:true});this.text('/ '+(jump?d.jumpGoal:d.bugGoal),75,s+82,15,muted,60);
+    this.text(count,20,s+66,32,ink,74,{bold:true});
+    this.text(jump&&d.endlessMode?'跳 · 最高 '+d.endlessBest:'/ '+(jump?d.jumpGoal:d.bugGoal),jump&&d.endlessMode?86:75,s+82,14,muted,130,{maxLines:1});
     this.button('回池塘',this.w-114,s+105,94,34,'returnToPond',null,{quiet:true});
     const combo=jump?d.jumpCombo:d.bugCombo;
     if(combo>1){
@@ -247,10 +257,10 @@ class Hud {
       this.rect(20,s+112,hot?104:86,23,hot?'rgba(255,232,140,.92)':'rgba(250,232,238,.92)',11);
       this.text((hot?'✦ 连击 ×':'连击 ×')+combo,28,s+116,12,hot?C.gold:C.pink,90,{bold:true,maxLines:1});
     }
-    if(d.bonusSeeds)this.text('额外莲子 +'+d.bonusSeeds,20,s+140,12,d.pondTheme==='firefly'?'#ffe28a':C.gold,160,{maxLines:1});
+    if(d.bonusSeeds&&!d.endlessMode)this.text('额外莲子 +'+d.bonusSeeds,20,s+140,12,d.pondTheme==='firefly'?'#ffe28a':C.gold,160,{maxLines:1});
     if(jump){
       const dotY=s+119;for(let i=0;i<d.attemptSlots.length;i++){this.ctx.beginPath();this.ctx.arc(this.w-111+i*16,dotY,4,0,Math.PI*2);this.ctx.fillStyle=i<d.attempts?'#5eaa7a':'#c3d3c7';this.ctx.fill();}
-      this.text(d.districtNumber+' / 4 · '+d.districtName,20,s+162,11,muted,220,{maxLines:1});
+      this.text(d.endlessMode?'无尽荷塘 · '+d.districtName:d.districtNumber+' / 4 · '+d.districtName,20,s+162,11,muted,220,{maxLines:1});
       if(!d.gameOver){
         const y=this.h-this.safeBottom-49;
         this.text(d.chargeHint,22,y-24,12,ink);this.text(d.chargePercent+'%',this.w-68,y-24,12,ink,46,{center:true});
@@ -309,7 +319,9 @@ class Hud {
     const stats=Math.max(y+116,line+8),cw=w/3;
     [d.grade,d.perfect+'/'+d.jumpGoal,d.runTimeText].forEach((value,i)=>{this.text(value,x+i*cw,stats,25,i===0?C.gold:C.green,cw,{center:true,bold:true});this.text(['评级','完美落叶','用时'][i],x+i*cw,stats+34,11,C.muted,cw,{center:true});});
     this.text(d.rewardText,x,stats+60,12,C.gold,w,{center:true,maxLines:2});
-    this.button('一起回家',x,this.h-this.safeBottom-62,w,44,'returnToPond',null,{primary:true});
+    const homeW=Math.round((w-8)*.62),shareW=w-8-homeW;
+    this.button('一起回家',x,this.h-this.safeBottom-62,homeW,44,'returnToPond',null,{primary:true});
+    this.button('分享名片',x+homeW+8,this.h-this.safeBottom-62,shareW,44,'shareFrogCard',null,{font:13});
   }
 
   image(path,x,y,w,h,stamp){
@@ -349,10 +361,10 @@ class Hud {
   modal(title,copy,buttons){
     this.hits=[];this.scrollArea=null;
     this.rect(0,0,this.w,this.h,'rgba(21,53,43,.40)');
-    const w=Math.min(340,this.w-40),x=(this.w-w)/2,h=128+buttons.length*48,y=Math.max(this.safeTop+74,(this.h-h)/2-30);
+    const w=Math.min(340,this.w-40),x=(this.w-w)/2,h=142+buttons.length*48,y=Math.max(this.safeTop+74,(this.h-h)/2-30);
     this.rect(x,y,w,h,'#f8fcf7',8);this.text(title,x+20,y+22,23,C.ink,w-40,{center:true,bold:true});
-    this.text(copy,x+20,y+62,13,C.muted,w-40,{center:true,maxLines:2});
-    buttons.forEach((button,i)=>this.button(button.label,x+20,y+106+i*48,w-40,40,button.method,null,{primary:i===0,quiet:i!==0,danger:button.danger}));
+    this.text(copy,x+20,y+60,13,C.muted,w-40,{center:true,maxLines:3});
+    buttons.forEach((button,i)=>this.button(button.label,x+20,y+118+i*48,w-40,40,button.method,null,{primary:i===0,quiet:i!==0,danger:button.danger}));
   }
 
   nameEditor(d){
@@ -377,8 +389,13 @@ class Hud {
     if(d.actionLabel&&!d.bubblePlaying)this.text(d.actionLabel,20,this.safeTop+189,16,C.pink,this.w-40,{center:true,maxLines:1});
     if(!d.threeReady){this.text(d.initError?'池塘加载失败':'池塘正在苏醒',20,this.h*.43,16,C.ink,this.w-40,{center:true});if(d.initError)this.button('重新加载',20,this.h*.5,this.w-40,44,'restartNativeGame',null,{primary:true});}
     if(d.transition)this.text('下一段旅程，即将开始',20,this.h*.43,22,C.ink,this.w-40,{center:true});
-    if(d.gameOver)this.modal('重新出发',d.message,[{label:'从最近进度继续',method:'retryLevel'},{label:'回到池塘',method:'returnToPond'}]);
+    if(d.gameOver)this.modal(d.endlessMode?'无尽荷塘':'重新出发',d.message,[{label:d.endlessMode?'再来一局':'从最近进度继续',method:'retryLevel'},{label:'回到池塘',method:'returnToPond'}]);
     if(d.sessionPaused)this.modal('稍等片刻',d.adventureLabel,[{label:'继续',method:'continueAdventure'},{label:'保存并回到首页',method:'saveAndGoHome'},{label:'重新开始冒险',method:'restartAdventure',danger:true}]);
+    if(d.visitorCard&&!d.gameOver&&!d.sessionPaused&&!d.nameEditor){
+      const v=d.visitorCard;
+      const copy='好友的「'+v.name+'」('+v.routeName+(v.best?' · 无尽 '+v.best+' 跳':'')+') 来荷塘串门啦\n「'+v.quote+'」';
+      this.modal('远方的荷塘来信',copy,[{label:'我也养一只 '+v.routeName,method:'adoptFromVisitor'},{label:'回我的池塘',method:'dismissVisitorCard'}]);
+    }
     if(d.nameEditor)this.nameEditor(d);
     this.texture.needsUpdate=true;this.dirty=false;this.lastDraw=now;
   }
