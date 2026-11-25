@@ -525,25 +525,29 @@ module.exports = function createArt(THREE, options) {
   function makeInsect(kind, mats) {
     const group = new T.Group();
     group.userData.kind = kind;
-    const color = kind === "dragonfly" ? 0x6fe3f2 : kind === "butterfly" ? 0xff9ccb : 0xffd75e;
+    const color = kind === "dragonfly" ? 0x6fe3f2
+      : kind === "butterfly" ? 0xff9ccb
+      : kind === "goldbug" ? 0xffe45e
+      : kind === "bee" ? 0xe64833
+      : 0xffd75e;
     const bodyMaterial = new T.MeshStandardMaterial({
       color,
-      roughness: 0.36,
-      metalness: 0.05,
+      roughness: kind === "goldbug" ? 0.18 : 0.36,
+      metalness: kind === "goldbug" ? 0.35 : 0.05,
       vertexColors: true,
-      emissive: new T.Color(color),
-      emissiveIntensity: 0.12
+      emissive: new T.Color(kind === "bee" ? 0x7a1c10 : color),
+      emissiveIntensity: kind === "goldbug" ? 0.45 : kind === "bee" ? 0.24 : 0.12
     });
 
     const body = part(group, new Geo.Sphere(0.10, 12, 10), bodyMaterial, {
-      s: [kind === "dragonfly" ? 2.6 : 1.1, 0.62, 0.75],
+      s: [kind === "dragonfly" ? 2.6 : kind === "bee" ? 1.45 : 1.1, kind === "bee" ? 0.78 : 0.62, kind === "bee" ? 0.85 : 0.75],
       low: 0.78
     });
 
     const wingMaterial = new T.MeshBasicMaterial({
-      color: 0xeaffff,
+      color: kind === "goldbug" ? 0xfff6b8 : kind === "bee" ? 0xffd4c2 : 0xeaffff,
       transparent: true,
-      opacity: 0.5,
+      opacity: kind === "goldbug" ? 0.68 : 0.5,
       side: T.DoubleSide,
       depthWrite: false
     });

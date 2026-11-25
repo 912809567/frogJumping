@@ -18,6 +18,8 @@ const server = http.createServer((req, res) => {
     inflate:read('pages/index/models/inflate.js'),outfits:read('pages/index/outfits.js'),shell:read('pages/index/shell.js'),
     returns: read('pages/index/returns.js'), cannon: read('node_modules/cannon/build/cannon.js'),
     motion: read('pages/index/experience.js'), adventure:read('pages/index/adventure.js'),
+    config: read('pages/index/config.js'), nurture: read('pages/index/nurture.js'),
+    jumpLevel: read('pages/index/jump-level.js'), bugLevel: read('pages/index/bug-level.js'),
     template: read('pages/index/index.wxml'), css: read('pages/index/index.wxss') }).replace(/</g, '\\u003c');
   res.end(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>荷塘来信 · 本地预览</title><style>body{margin:0;background:#d7e8e3}#app{position:relative;height:100vh;max-width:480px;margin:0 auto}view,text,scroll-view,cover-view{display:block}scroll-view{overflow:auto}button{font-family:inherit;cursor:pointer}canvas{touch-action:none}text text{display:inline}[bindtap]{cursor:pointer}</style><div id="app"></div><script>
   const source=${payload};
@@ -38,6 +40,10 @@ const server = http.createServer((req, res) => {
   const motion=moduleFactory(source.motion,()=>{});
   const shell=moduleFactory(source.shell,()=>{});
   const adventure=moduleFactory(source.adventure,()=>{});
+  const config=moduleFactory(source.config,()=>{});
+  const nurture=moduleFactory(source.nurture,()=>config);
+  const jumpLevel=moduleFactory(source.jumpLevel,()=>config);
+  const bugLevel=moduleFactory(source.bugLevel,()=>config);
   let page,canvas;
   const app=document.getElementById('app');
   const template=document.createElement('template');template.innerHTML=source.template;
@@ -77,7 +83,7 @@ const server = http.createServer((req, res) => {
     createInnerAudioContext(){const a=new Audio();const voice={stop(){a.pause();a.currentTime=0;},play(){a.play().catch(()=>{});},destroy(){a.pause();a.removeAttribute('src');a.load();},onError(fn){a.onerror=fn;}};Object.defineProperty(voice,'src',{set(v){a.src=v;}});Object.defineProperty(voice,'volume',{set(v){a.volume=v;}});return voice;},
     showModal(options){const result=options.editable?window.prompt(options.title,options.content||''):window.confirm(options.title+'\\n'+(options.content||''));options.success({confirm:options.editable?result!==null:result===true,content:typeof result==='string'?result:''});},
     getWindowInfo:()=>({windowWidth:app.clientWidth,windowHeight:app.clientHeight,pixelRatio:devicePixelRatio}),createSelectorQuery(){const q={in(){return q},select(){return q},node(){return q},exec(cb){cb([{node:canvas}]);}};return q;}};
-  moduleFactory(source.game,name=>name==='threejs-miniprogram'?adapter:name==='./art'?art:name==='./returns'?returns:name==='./shell'?shell:name==='./adventure'?adventure:motion);
+  moduleFactory(source.game,name=>name==='threejs-miniprogram'?adapter:name==='./art'?art:name==='./returns'?returns:name==='./shell'?shell:name==='./adventure'?adventure:name==='./config'?config:name==='./nurture'?nurture:name==='./jump-level'?jumpLevel:name==='./bug-level'?bugLevel:motion);
   </script></html>`);
 });
 if (require.main === module) {

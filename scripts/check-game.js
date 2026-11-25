@@ -30,11 +30,9 @@ function loadPage(storageApi) {
   let config = null;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "pages", "index", "index.js"), "utf8"), {
     require: (name) => {
-      if (name === './adventure') return require('../pages/index/adventure');
-      if (name === './shell') return require('../pages/index/shell');
       if (name === "./experience") return experience;
       if (name === "./art") return artFactory;
-      if (name === "./returns") return require('../pages/index/returns');
+      if (name.startsWith("./")) return require("../pages/index/" + name.slice(2));
       return { createScopedThreejs };
     },
     Page: (definition) => {
@@ -548,7 +546,9 @@ assert(meshCount < 200, "常驻场景的绘制对象应当控制在 200 以内�
 // ------------------------------------------------------------------ 静态检查
 
 // this.xxx() 调用的方法必须真的存在：重构时改名漏改会在这里立刻暴露
-const pageSource = fs.readFileSync(path.join(__dirname, "..", "pages", "index", "index.js"), "utf8");
+const pageSource = ["index.js", "nurture.js", "jump-level.js", "bug-level.js"]
+  .map((file) => fs.readFileSync(path.join(__dirname, "..", "pages", "index", file), "utf8"))
+  .join("\n");
 const called = new Set();
 pageSource.replace(/this\.([A-Za-z_$][\w$]*)\s*\(/g, (match, name) => {
   called.add(name);
@@ -754,8 +754,35 @@ petB.selectRoute({ currentTarget: { dataset: { id: "princess" } } });
 petB.beginCompanion("新伙伴");
 assert.equal(petB.data.snacks, 3, "换新伙伴必须保留账号通用莲子");
 assert.equal(petB.data.pondTheme, "firefly", "换新伙伴必须保留已选荷塘氛围");
-petA.disposeThree(); petB.disposeThree();
-console.log("PASS: 完美连击升调与双层金环 / 19 条路线台词 / 多泡泡与金色双倍 / 跨伙伴莲子与荷塘氛围皮肤");
+assert.equal(petB.data.rosterCount, 2, "荷塘名册应同时保留新旧两位伙伴");
+const firstPetId = petA.companion.id;
+petB.switchCompanion({ currentTarget: { dataset: { id: firstPetId } } });
+assert.equal(petB.companion.name, "大王蛙", "切回名册中的旧伙伴应恢复对应角色");
+assert.equal(petB.companion.routeId, "king");
+const petReloaded = makeGame(sharedApi);
+assert.equal(petReloaded.data.rosterCount, 2, "多伙伴名册应持久化保存");
+assert.equal(petReloaded.companion.name, "大王蛙");
+petA.disposeThree(); petB.disposeThree(); petReloaded.disposeThree();
+
+// 第二关：金萤虫（双倍+莲子）与带刺红蜂（蛰嘴断连击+短晕）
+const specialBugs = gameWithRoute("male", "king"); specialBugs.setupBugLevel();
+const goldBug = specialBugs.insects.find((item) => item.userData.kind === "goldbug");
+const beeBug = specialBugs.insects.find((item) => item.userData.kind === "bee");
+assert(goldBug && beeBug, "荷花池应刷新金萤虫和带刺红蜂");
+const snacksBeforeGold = specialBugs.data.snacks;
+specialBugs.scoreBug(goldBug);
+assert.equal(specialBugs.data.bugs, 2, "金萤虫应算 2 只进度");
+assert.equal(specialBugs.data.snacks, snacksBeforeGold + 1, "金萤虫应额外奖励 1 颗莲子");
+assert.equal(specialBugs.data.bugCombo, 1);
+specialBugs.scoreBug(beeBug);
+assert.equal(specialBugs.data.bugs, 2, "误舔红蜂不能增加捕虫数");
+assert.equal(specialBugs.data.bugCombo, 0, "误舔红蜂必须打断连击");
+assert(specialBugs.stunUntil > Date.now(), "误舔红蜂应触发短暂发晕");
+specialBugs.aimHit = specialBugs.insects[0];
+specialBugs.fireTongue();
+assert.equal(specialBugs.tongueState, null, "发晕期间不能伸舌头");
+specialBugs.disposeThree();
+console.log("PASS: 完美连击升调与双层金环 / 19 条路线台词 / 多泡泡与金色双倍 / 跨伙伴莲子与荷塘氛围皮肤 / 多伙伴名册 / 金萤虫与红蜂");
 
 console.log("PASS: 养成 3 阶段（轮流 " + rotate.actions + " 次 / 只喂食 " + spam.actions + " 次）" +
   " / 5 种路线被动 / 输入缓冲 / 20 跳可达 / 落水机会 / 完美落叶 / 沉叶+阵风 / 捕虫射程+受惊 / 10 虫通关 / 路线收集 / 结算评级+来信+分享 / 转场清理" +

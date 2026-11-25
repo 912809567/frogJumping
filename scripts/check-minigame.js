@@ -68,6 +68,9 @@ assert.equal(JSON.stringify(game.data.bugGuideSteps),guide,'捕虫反馈不能�
 game.setupJumpLevel();game.hud.resize(api.getWindowInfo());
 tap('pauseAdventure');tap('saveAndGoHome');
 assert(game.data.petQuote,'首页应展示角色气泡台词');
+tap('openStatus');
+assert.equal(game.data.rosterCount,1);
+tap('goHome');
 tap('openSettings');
 game.setSharedSnacks(5);tap('choosePondTheme',d=>d.id==='sunset');assert.equal(game.data.pondTheme,'sunset');assert.equal(game.data.snacks,2);
 tap('toggleSetting',d=>d.key==='soundEnabled');assert(!game.data.soundEnabled);tap('goHome');

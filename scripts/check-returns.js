@@ -12,7 +12,7 @@ const THREE = adapter.createScopedThreejs(new Canvas());
 function game(width=390,height=844) {
   let page;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../pages/index/index.js'),'utf8'),{
-    require: name => name==='./adventure'?require('../pages/index/adventure'):name==='./shell'?require('../pages/index/shell'):name==='./art'?art:name==='./returns'?returns:name==='./experience'?experience:adapter,
+    require: name => name==='./art'?art:name==='./returns'?returns:name==='./experience'?experience:name.startsWith('./')?require('../pages/index/'+name.slice(2)):adapter,
     Page: value=>{page=value;},console,Date,Math,setTimeout,clearTimeout,setInterval,clearInterval
   });
   const p=Object.assign({},page,{THREE,data:Object.assign({},page.data),canvas:new Canvas(),renderer:{render(){},dispose(){}},setData(patch){Object.assign(this.data,patch);}});

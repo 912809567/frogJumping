@@ -34,9 +34,11 @@ function shift(instance, elapsed) {
   if (instance.sceneStartedAt) instance.sceneStartedAt += elapsed;
   if (instance.bubbleGame) instance.bubbleGame.start += elapsed;
   if (instance.swallowUntil) instance.swallowUntil += elapsed;
+  if (instance.stunUntil) instance.stunUntil += elapsed;
   instance.motionOffset = (instance.motionOffset || 0) + elapsed;
   (instance.insects || []).forEach((insect) => {
     if (insect.userData.flee) insect.userData.flee.at += elapsed;
+    if (insect.userData.expiresAt) insect.userData.expiresAt += elapsed;
   });
   if (instance.blink) {
     if (instance.blink.next) instance.blink.next += elapsed;

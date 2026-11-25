@@ -10,7 +10,7 @@ class Canvas { createImage(){return {};} requestAnimationFrame(){return 1;} canc
 const THREE = adapter.createScopedThreejs(new Canvas());
 let definition;
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../pages/index/index.js'),'utf8'),{
-  require: name => name==='./adventure'?require('../pages/index/adventure'):name==='./shell'?require('../pages/index/shell'):name==='./art'?artFactory:name==='./experience'?experience:name==='./returns'?require('../pages/index/returns'):adapter,
+  require: name => name==='./art'?artFactory:name==='./experience'?experience:name.startsWith('./')?require('../pages/index/'+name.slice(2)):adapter,
   Page: value => { definition=value; }, console, Date, Math, setTimeout, clearTimeout, setInterval, clearInterval
 });
 function page() {

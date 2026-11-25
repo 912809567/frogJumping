@@ -36,11 +36,9 @@ function loadPage() {
   let config = null;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "pages", "index", "index.js"), "utf8"), {
     require: (name) => {
-      if (name === './adventure') return require('../pages/index/adventure');
-      if (name === './shell') return require('../pages/index/shell');
       if (name === "./experience") return experience;
       if (name === "./art") return artFactory;
-      if (name === "./returns") return require('../pages/index/returns');
+      if (name.startsWith("./")) return require("../pages/index/" + name.slice(2));
       return { createScopedThreejs };
     },
     Page: (definition) => {

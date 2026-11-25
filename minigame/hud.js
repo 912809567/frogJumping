@@ -30,7 +30,7 @@ class Hud {
     if(phase==='route'){dock=Math.min(298,Math.max(238,h*.34));top=s+158;}
     if(phase==='levelBug')dock=this.bugGuideHeight(d);
     if(phase==='nurture'){dock=d.bubblePlaying?122:278+(d.souvenirs.length?24:0);top=s+130;}
-    if(phase==='status'){dock=d.hasCompanion?326:170;top=s+76;}
+    if(phase==='status'){dock=d.hasCompanion?(d.rosterCount>1?396:326):170;top=s+76;}
     if(phase==='settings'){dock=398;top=s+76;}
     if(phase==='returnChoice'){dock=278;top=s+154;}
     if(phase==='final'){dock=322;top=s+76;}
@@ -128,7 +128,8 @@ class Hud {
     const y=this.safeTop+77,ink=this.sceneInk(d),muted=this.sceneMuted(d);
     if(d.phase==='home'){
       this.text('初夏 · 第一封信',20,y,12,muted);this.text('荷塘来信',20,y+27,34,ink,this.w-40,{bold:true});
-      this.text(d.hasCompanion?d.savedPetName+'在池塘等你':'小小的相遇，慢慢长大',20,y+78,13,muted);
+      const sub=d.hasCompanion?(d.rosterCount>1?d.savedPetName+' 和 '+(d.rosterCount-1)+' 位伙伴在池塘等你':d.savedPetName+'在池塘等你'):'小小的相遇，慢慢长大';
+      this.text(sub,20,y+78,13,muted,this.w-40,{maxLines:1});
       this.quoteBubble(d);
     }else if(d.phase==='route'){
       this.text('未来的模样',20,y-8,12,muted);this.text(d.selectedRouteName||'它会成为谁？',20,y+14,24,ink,this.w-40,{bold:true});
@@ -193,15 +194,27 @@ class Hud {
   }
 
   status(d){
-    this.panel();const x=20,w=this.w-40,y=this.dockTop+18;
+    this.panel();const x=20,w=this.w-40,y=this.dockTop+16;
     this.text(d.hasCompanion?d.savedPetName:'还没有伙伴',x,y,22,C.ink,w,{bold:true});
     if(!d.hasCompanion){this.text('池塘里，有一只小蝌蚪正等着你。',x,y+40,14,C.muted,w);this.button('去遇见它',x,y+83,w,46,'startGame',null,{primary:true,disabled:!d.threeReady});return;}
-    this.text(d.savedPetRoute+' · '+d.savedPetStage,x,y+35,12,C.muted,w,{maxLines:1});
-    this.text('成长 '+d.statusGrowth+'%',x,y+63,12,C.muted);this.bar(x,y+85,w,d.statusGrowth);this.needs([d.statusFood,d.statusAffection,d.statusPlay],y+103);
-    this.text('冒险 '+d.statusAdventures+' 次 · 莲子 '+d.statusSnacks+' 颗',x,y+153,13,C.muted,w,{center:true});
-    this.text(d.statusPerk+' · '+d.statusSkill,x,y+178,12,C.gold,w,{center:true});
-    this.button('继续陪伴',x,y+207,w,44,'resumeCompanion',null,{primary:true,disabled:!d.threeReady});
-    this.button('结识新的伙伴',x,y+259,w,34,'openNewCompanion',null,{quiet:true});
+    this.text(d.savedPetRoute+' · '+d.savedPetStage,x,y+33,12,C.muted,w,{maxLines:1});
+    this.text('成长 '+d.statusGrowth+'%',x,y+58,12,C.muted);this.bar(x,y+79,w,d.statusGrowth);this.needs([d.statusFood,d.statusAffection,d.statusPlay],y+96);
+    this.text('冒险 '+d.statusAdventures+' 次 · 莲子 '+d.statusSnacks+' 颗',x,y+144,13,C.muted,w,{center:true});
+    this.text(d.statusPerk+' · '+d.statusSkill,x,y+167,12,C.gold,w,{center:true});
+    let next=y+194;
+    if(d.rosterList&&d.rosterList.length>1){
+      this.text('荷塘名册（'+d.rosterList.length+' 位伙伴，点击切换）',x,next,11,C.muted,w,{maxLines:1});
+      const cols=Math.min(3,d.rosterList.length),gap=6,cw=(w-gap*(cols-1))/cols,rowH=42,rows=Math.ceil(d.rosterList.length/cols),areaH=Math.min(54,rows*rowH);
+      const origin=this.scrollBegin(x,next+18,w,areaH,rows*rowH);
+      d.rosterList.forEach((item,i)=>{
+        const rx=x+(i%cols)*(cw+gap),ry=origin+Math.floor(i/cols)*rowH;
+        this.button(item.name,rx,ry,cw,36,'switchCompanion',{id:item.id},{active:item.active,font:12});
+      });
+      this.scrollEnd();
+      next+=areaH+24;
+    }
+    this.button('继续陪伴',x,next,w,44,'resumeCompanion',null,{primary:true,disabled:!d.threeReady});
+    this.button('结识新的伙伴',x,next+52,w,34,'openNewCompanion',null,{quiet:true});
   }
 
   settings(d){
