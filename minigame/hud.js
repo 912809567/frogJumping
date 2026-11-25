@@ -31,11 +31,12 @@ class Hud {
     if(phase==='levelBug')dock=this.bugGuideHeight(d);
     if(phase==='nurture'){dock=d.bubblePlaying?122:278+(d.souvenirs.length?24:0);top=s+130;}
     if(phase==='status'){dock=d.hasCompanion?326:170;top=s+76;}
-    if(phase==='settings'){dock=332;top=s+76;}
+    if(phase==='settings'){dock=398;top=s+76;}
     if(phase==='returnChoice'){dock=278;top=s+154;}
     if(phase==='final'){dock=322;top=s+76;}
     this.dockTop=h-this.safeBottom-dock;
-    this.band={top,bottom:Math.max(top+80,this.dockTop-12)};
+    const hasQuote=!!d.petQuote&&((phase==='home')||(phase==='nurture'&&!d.bubblePlaying));
+    this.band={top,bottom:Math.max(top+80,this.dockTop-(hasQuote?48:12))};
     if(this.phase!==phase){this.phase=phase;this.scroll=0;this.scrollArea=null;}
     this.dockHeight=dock;return this.band;
   }
@@ -104,28 +105,41 @@ class Hud {
   line(y){this.rect(20,y,this.w-40,1,C.line);}
   bar(x,y,w,value,color){this.rect(x,y,w,5,'#dfe9e1');this.rect(x,y,w*clamp(value,0,100)/100,5,color||'#83b88a');}
 
+  sceneInk(d){return d.pondTheme==='firefly'?'#eef6f1':C.ink;}
+  sceneMuted(d){return d.pondTheme==='firefly'?'#b5cfc7':C.muted;}
+
   header(d){
-    const back=['route','nurture','status','settings','album'].includes(d.phase),s=this.safeTop;
+    const back=['route','nurture','status','settings','album'].includes(d.phase),s=this.safeTop,ink=this.sceneInk(d),muted=this.sceneMuted(d);
     if(back)this.button('返回首页',12,s+5,38,38,'goHome',null,{icon:'back',iconOnly:true,quiet:true});
-    this.text('荷塘来信',back?59:20,s+9,15,C.ink,this.w-150,{bold:true,maxLines:1});
-    this.text(d.chapter,back?59:20,s+31,11,C.muted,this.w-150,{maxLines:1});
+    this.text('荷塘来信',back?59:20,s+9,15,ink,this.w-150,{bold:true,maxLines:1});
+    this.text(d.chapter,back?59:20,s+31,11,muted,this.w-150,{maxLines:1});
     if(ACTIVE.includes(d.phase))this.button('暂停冒险',this.w-58,s+56,40,40,'pauseAdventure',null,{icon:'pause',iconOnly:true});
   }
 
+  quoteBubble(d){
+    if(!d.petQuote)return;
+    const text='「'+d.petQuote+'」',y=this.dockTop-40,x=22,w=this.w-44;
+    this.rect(x,y,w,30,'rgba(248,252,249,.9)',15);
+    this.text(text,x+12,y+7,12,C.ink,w-24,{center:true,maxLines:1});
+    this.hits.push({id:'speakQuote:{}',label:text,x,y,w,h:30,method:'speakQuote',dataset:{},disabled:false});
+  }
+
   caption(d){
-    const y=this.safeTop+77;
+    const y=this.safeTop+77,ink=this.sceneInk(d),muted=this.sceneMuted(d);
     if(d.phase==='home'){
-      this.text('初夏 · 第一封信',20,y,12,C.muted);this.text('荷塘来信',20,y+27,34,C.ink,this.w-40,{bold:true});
-      this.text(d.hasCompanion?d.savedPetName+'在池塘等你':'小小的相遇，慢慢长大',20,y+78,13,C.muted);
+      this.text('初夏 · 第一封信',20,y,12,muted);this.text('荷塘来信',20,y+27,34,ink,this.w-40,{bold:true});
+      this.text(d.hasCompanion?d.savedPetName+'在池塘等你':'小小的相遇，慢慢长大',20,y+78,13,muted);
+      this.quoteBubble(d);
     }else if(d.phase==='route'){
-      this.text('未来的模样',20,y-8,12,C.muted);this.text(d.selectedRouteName||'它会成为谁？',20,y+14,24,C.ink,this.w-40,{bold:true});
-      this.text(d.selectedPerkName?d.selectedPerkName+' · '+d.selectedPerkText:'',20,y+49,12,C.muted,this.w-40,{maxLines:1});
-      this.text(d.skillName?d.skillName+' · '+d.skillText:'',20,y+68,12,C.muted,this.w-40,{maxLines:1});
+      this.text('未来的模样',20,y-8,12,muted);this.text(d.selectedRouteName||'它会成为谁？',20,y+14,24,ink,this.w-40,{bold:true});
+      this.text(d.selectedPerkName?d.selectedPerkName+' · '+d.selectedPerkText:'',20,y+49,12,muted,this.w-40,{maxLines:1});
+      this.text(d.skillName?d.skillName+' · '+d.skillText:'',20,y+68,12,muted,this.w-40,{maxLines:1});
     }else if(d.phase==='nurture'){
-      this.text(d.selectedRouteName+' · '+d.stageName,20,y-5,11,C.muted,this.w-40,{maxLines:1});
-      this.text(d.petName,20,y+19,23,C.ink,this.w-80,{bold:true,maxLines:1});
+      this.text(d.selectedRouteName+' · '+d.stageName,20,y-5,11,muted,this.w-40,{maxLines:1});
+      this.text(d.petName,20,y+19,23,ink,this.w-80,{bold:true,maxLines:1});
       this.button('改名字',this.w-57,y+13,36,36,'renameCompanion',null,{icon:'rename',iconOnly:true,quiet:true});
-      this.text(d.petHabit,20,y+51,12,C.muted,this.w-40,{maxLines:1});
+      this.text(d.petHabit,20,y+51,12,muted,this.w-40,{maxLines:1});
+      if(!d.bubblePlaying)this.quoteBubble(d);
     }
   }
 
@@ -165,7 +179,7 @@ class Hud {
 
   nurture(d){
     this.panel();const x=20,w=this.w-40,y=this.dockTop+15;
-    if(d.bubblePlaying){this.text('追泡泡',x,y,19,C.ink,w,{bold:true});this.text(d.bubbleSeconds+' 秒 · '+d.bubbleScore+' / 5',x,y+30,14,C.blue);this.button('结束陪玩',this.w-112,y+13,92,38,'finishBubbleGame');return;}
+    if(d.bubblePlaying){this.text(d.actionLabel||'追泡泡',x,y,19,C.ink,w-102,{bold:true,maxLines:1});this.text(d.bubbleSeconds+' 秒 · '+d.bubbleScore+' / 5 · 金色双倍',x,y+30,13,C.blue,w-102,{maxLines:1});this.button('结束陪玩',this.w-112,y+13,92,38,'finishBubbleGame');return;}
     this.text('今日的陪伴',x,y,18,C.ink,w,{bold:true});this.text(d.growthPercent+'%',this.w-72,y+3,12,C.muted,52,{center:true});
     this.bar(x,y+30,w,d.growthPercent);this.text(d.needHint,x,y+42,12,d.needKey?'#a05e38':C.muted,w,{center:true,maxLines:1});
     this.needs([d.food,d.affection,d.play],y+65);
@@ -191,31 +205,42 @@ class Hud {
   }
 
   settings(d){
-    this.panel();const x=20,w=this.w-40,y=this.dockTop+20;
-    this.text('设置',x,y,23,C.ink,w,{bold:true});
+    this.panel();const x=20,w=this.w-40,y=this.dockTop+16;
+    this.text('设置',x,y,22,C.ink,w,{bold:true});
     [['游戏音效','soundEnabled'],['震动反馈','hapticEnabled']].forEach((item,i)=>{
-      const ry=y+47+i*57;this.text(item[0],x,ry+8,15);
-      const sx=this.w-76;this.rect(sx,ry+4,56,30,d[item[1]]?C.green:'#b1c2b7',15);this.rect(sx+(d[item[1]]?29:3),ry+7,24,24,'#fff',12);
-      this.hits.push({id:'toggleSetting:'+item[1],label:item[0],x:sx-5,y:ry,w:66,h:39,method:'toggleSetting',dataset:{key:item[1]}});this.line(ry+47);
+      const ry=y+42+i*50;this.text(item[0],x,ry+7,15);
+      const sx=this.w-76;this.rect(sx,ry+3,56,30,d[item[1]]?C.green:'#b1c2b7',15);this.rect(sx+(d[item[1]]?29:3),ry+6,24,24,'#fff',12);
+      this.hits.push({id:'toggleSetting:'+item[1],label:item[0],x:sx-5,y:ry,w:66,h:38,method:'toggleSetting',dataset:{key:item[1]}});this.line(ry+42);
     });
-    this.text('画面品质',x,y+170,14,C.muted);const cw=(w-12)/3;
-    [['自动','auto'],['高清','high'],['流畅','smooth']].forEach((item,i)=>this.button(item[0],x+i*(cw+6),y+199,cw,41,'chooseQuality',{mode:item[1]},{active:d.qualityMode===item[1]}));
-    this.button('完成',x,y+262,w,44,'goHome',null,{primary:true});if(d.storageNotice)this.notice(d.storageNotice);
+    this.text('画面品质',x,y+146,13,C.muted);const cw=(w-12)/3;
+    [['自动','auto'],['高清','high'],['流畅','smooth']].forEach((item,i)=>this.button(item[0],x+i*(cw+6),y+169,cw,36,'chooseQuality',{mode:item[1]},{active:d.qualityMode===item[1],font:13}));
+    this.text('荷塘氛围',x,y+218,13,C.muted);this.text('莲子 ×'+(d.snacks||0),this.w-120,y+218,12,C.gold,100,{center:false,maxLines:1});
+    const themes=d.pondThemeList||[],tw=(w-8)/2;
+    themes.forEach((theme,i)=>{
+      const tx=x+(i%2)*(tw+8),ty=y+242+Math.floor(i/2)*44;
+      const label=theme.unlocked?theme.name:theme.name+' · '+theme.cost+'莲';
+      this.button(label,tx,ty,tw,38,'choosePondTheme',{id:theme.id},{active:d.pondTheme===theme.id,font:12});
+    });
+    this.button('完成',x,y+334,w,42,'goHome',null,{primary:true});if(d.storageNotice)this.notice(d.storageNotice);
   }
 
   challenge(d){
-    const s=this.safeTop,jump=d.phase==='levelJump',count=jump?d.jumps:d.bugs;
-    this.text(count,20,s+66,32,C.ink,64,{bold:true});this.text('/ '+(jump?d.jumpGoal:d.bugGoal),75,s+82,15,C.muted,60);
+    const s=this.safeTop,jump=d.phase==='levelJump',count=jump?d.jumps:d.bugs,ink=this.sceneInk(d),muted=this.sceneMuted(d);
+    this.text(count,20,s+66,32,ink,64,{bold:true});this.text('/ '+(jump?d.jumpGoal:d.bugGoal),75,s+82,15,muted,60);
     this.button('回池塘',this.w-114,s+105,94,34,'returnToPond',null,{quiet:true});
     const combo=jump?d.jumpCombo:d.bugCombo;
-    if(combo>1)this.text('连击 ×'+combo,20,s+115,13,C.pink,150,{maxLines:1});
-    if(d.bonusSeeds)this.text('额外莲子 +'+d.bonusSeeds,20,s+138,12,C.gold,160,{maxLines:1});
+    if(combo>1){
+      const hot=combo>=3;
+      this.rect(20,s+112,hot?104:86,23,hot?'rgba(255,232,140,.92)':'rgba(250,232,238,.92)',11);
+      this.text((hot?'✦ 连击 ×':'连击 ×')+combo,28,s+116,12,hot?C.gold:C.pink,90,{bold:true,maxLines:1});
+    }
+    if(d.bonusSeeds)this.text('额外莲子 +'+d.bonusSeeds,20,s+140,12,d.pondTheme==='firefly'?'#ffe28a':C.gold,160,{maxLines:1});
     if(jump){
       const dotY=s+119;for(let i=0;i<d.attemptSlots.length;i++){this.ctx.beginPath();this.ctx.arc(this.w-111+i*16,dotY,4,0,Math.PI*2);this.ctx.fillStyle=i<d.attempts?'#5eaa7a':'#c3d3c7';this.ctx.fill();}
-      this.text(d.districtNumber+' / 4 · '+d.districtName,20,s+162,11,C.muted,220,{maxLines:1});
+      this.text(d.districtNumber+' / 4 · '+d.districtName,20,s+162,11,muted,220,{maxLines:1});
       if(!d.gameOver){
         const y=this.h-this.safeBottom-49;
-        this.text(d.chargeHint,22,y-24,12);this.text(d.chargePercent+'%',this.w-68,y-24,12,C.ink,46,{center:true});
+        this.text(d.chargeHint,22,y-24,12,ink);this.text(d.chargePercent+'%',this.w-68,y-24,12,ink,46,{center:true});
         this.rect(22,y,this.w-44,13,'rgba(35,79,70,.5)',3);
         this.rect(23,y+1,(this.w-46)*d.chargePercent/100,11,({perfect:'#7df0a2',good:'#c9ea8a',close:'#ffd274',far:'#ff9b8a'})[d.chargeTone],2);
         this.rect(22+(this.w-44)*d.targetCharge/100,y-4,2,21,'#fffbe5');
@@ -223,7 +248,7 @@ class Hud {
       }
     }
     if(!d.gameOver){
-      this.text(d.bugHint||d.message,20,jump?this.h-this.safeBottom-161:this.dockTop-43,13,C.ink,this.w-40,{center:true,maxLines:2});
+      this.text(d.bugHint||d.message,20,jump?this.h-this.safeBottom-161:this.dockTop-43,13,ink,this.w-40,{center:true,maxLines:2});
       if(!jump){
         this.panel();this.text(d.bugGuideTitle,20,this.dockTop+13,14,C.ink,this.w-40,{bold:true});
         let y=this.dockTop+40;d.bugGuideSteps.forEach(line=>{y+=this.text(line,20,y,12,C.muted,this.w-40,{lineHeight:18})+6;});

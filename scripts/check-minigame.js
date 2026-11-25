@@ -66,7 +66,11 @@ for(const [width,height]of [[320,640],[390,844]]){
 game.scoreBug(game.insects[0]);game.aimHit=null;game.aimWorld=new game.THREE.Vector3(99,99,99);game.fireTongue();
 assert.equal(JSON.stringify(game.data.bugGuideSteps),guide,'捕虫反馈不能覆盖玩法说明');game.retryLevel();assert.equal(JSON.stringify(game.data.bugGuideSteps),guide);
 game.setupJumpLevel();game.hud.resize(api.getWindowInfo());
-tap('pauseAdventure');tap('saveAndGoHome');tap('openSettings');tap('toggleSetting',d=>d.key==='soundEnabled');assert(!game.data.soundEnabled);tap('goHome');
+tap('pauseAdventure');tap('saveAndGoHome');
+assert(game.data.petQuote,'首页应展示角色气泡台词');
+tap('openSettings');
+game.setSharedSnacks(5);tap('choosePondTheme',d=>d.id==='sunset');assert.equal(game.data.pondTheme,'sunset');assert.equal(game.data.snacks,2);
+tap('toggleSetting',d=>d.key==='soundEnabled');assert(!game.data.soundEnabled);tap('goHome');
 assert.equal(game.assetPath('/assets/audio/jump.wav'),'assets/audio/jump.wav');
 game.onUnload();assert.equal(game.hud,null);assert(Object.values(callbacks).every(set=>set.size===0));assert.equal(frames.size,0);
 game=boot();assert(!game.data.soundEnabled);assert.equal(game.companion.name,'荷塘原生蛙');assert(game.data.hasAdventure);game.onUnload();

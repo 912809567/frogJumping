@@ -695,6 +695,68 @@ routes.openRoutes();
   }
 console.log("PASS: 切后台不消耗技能与陪玩时长 / 19 条路线完整 20 跳均可达");
 
+// ------------------------------------------------------------------ 连击升调 / 路线台词 / 金泡泡 / 跨伙伴莲子与荷塘氛围
+const comboGame = gameWithRoute("male", "king"); comboGame.setupJumpLevel();
+const rates = [];
+comboGame.playSound = (name, options) => { if (name === "perfect") rates.push(options && options.rate || 1); };
+stubLanding(comboGame, 0.05);
+stubLanding(comboGame, 0.05);
+const ringsAfter2 = comboGame.rings.length;
+stubLanding(comboGame, 0.05);
+assert.equal(rates.length, 3);
+assert(rates[0] < rates[1] && rates[1] < rates[2], "连续完美落叶音效必须逐级升调");
+assert(comboGame.data.message.includes("完美连击 ×3"), "连续完美应展示连击反馈");
+assert(ringsAfter2 >= 3, "2 连击以上应产生双层金色涟漪");
+comboGame.disposeThree();
+
+const quoteGame = makeGame(); quoteGame.openRoutes();
+for (const route of quoteGame.data.routeList) {
+  const q0 = quoteGame.routeQuote(route.id, 0), q1 = quoteGame.routeQuote(route.id, 1);
+  assert(q0 && q1 && q0 !== q1, route.id + " 缺少多条专属台词");
+}
+quoteGame.selectRoute({ currentTarget: { dataset: { id: "it" } } });
+const firstQuote = quoteGame.data.petQuote;
+quoteGame.speakQuote({ currentTarget: { dataset: {} } }, true);
+quoteGame.speakQuote({ currentTarget: { dataset: {} } }, true);
+assert(quoteGame.data.petQuote && quoteGame.data.petQuote !== firstQuote, "点击气泡应切换台词");
+quoteGame.disposeThree();
+
+const goldBubbles = gameWithRoute("female", "artist"); goldBubbles.startBubbleGame();
+assert.equal(goldBubbles.playBubbles.length, 3, "追泡泡应同时刷新多个泡泡");
+const goldTarget = goldBubbles.playBubbles[1];
+goldTarget.userData.golden = true; goldTarget.userData.value = 2;
+const gp = goldTarget.position.clone().project(goldBubbles.camera);
+goldBubbles.touchPlayBubble({ x: (gp.x + 1) * goldBubbles.width / 2, y: (1 - gp.y) * goldBubbles.height / 2 });
+assert.equal(goldBubbles.data.bubbleScore, 2, "金色泡泡应一次加 2 分");
+goldBubbles.disposeThree();
+
+const sharedStore = {};
+const sharedApi = {
+  getStorageSync: (k) => sharedStore[k],
+  setStorageSync: (k, v) => { sharedStore[k] = JSON.parse(JSON.stringify(v)); }
+};
+const petA = makeGame(sharedApi);
+petA.selectRoute({ currentTarget: { dataset: { id: "king" } } });
+petA.beginCompanion("大王蛙");
+petA.setSharedSnacks(6);
+petA.choosePondTheme({ currentTarget: { dataset: { id: "sunset" } } });
+assert.equal(petA.data.pondTheme, "sunset");
+assert.equal(petA.data.snacks, 3, "解锁落日金波应扣除 3 颗莲子");
+petA.choosePondTheme({ currentTarget: { dataset: { id: "firefly" } } });
+assert.equal(petA.data.pondTheme, "sunset", "莲子不足时不能解锁夏夜萤火");
+petA.setSharedSnacks(8);
+petA.choosePondTheme({ currentTarget: { dataset: { id: "firefly" } } });
+assert.equal(petA.data.pondTheme, "firefly");
+assert(petA.themeParticles && petA.themeParticles.userData.kind === "firefly", "夏夜萤火应激活萤火粒子");
+assert.equal(petA.data.snacks, 3);
+const petB = makeGame(sharedApi);
+petB.selectRoute({ currentTarget: { dataset: { id: "princess" } } });
+petB.beginCompanion("新伙伴");
+assert.equal(petB.data.snacks, 3, "换新伙伴必须保留账号通用莲子");
+assert.equal(petB.data.pondTheme, "firefly", "换新伙伴必须保留已选荷塘氛围");
+petA.disposeThree(); petB.disposeThree();
+console.log("PASS: 完美连击升调与双层金环 / 19 条路线台词 / 多泡泡与金色双倍 / 跨伙伴莲子与荷塘氛围皮肤");
+
 console.log("PASS: 养成 3 阶段（轮流 " + rotate.actions + " 次 / 只喂食 " + spam.actions + " 次）" +
   " / 5 种路线被动 / 输入缓冲 / 20 跳可达 / 落水机会 / 完美落叶 / 沉叶+阵风 / 捕虫射程+受惊 / 10 虫通关 / 路线收集 / 结算评级+来信+分享 / 转场清理" +
   " / 常驻绘制对象 " + meshCount + " / 20 跳最大转向 " + (trailTurn * 57.3).toFixed(0) + "°");

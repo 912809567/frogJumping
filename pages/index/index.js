@@ -71,6 +71,43 @@ const CARE_EPILOGUE = {
 const GRADE_ORDER = ["C", "B", "A", "S"];
 
 const PET_STORAGE = "tadpole-companion-v1";
+const POND_STORAGE = "tadpole-pond-v1";
+const PERFECT_PITCHES = [1, 1.06, 1.12, 1.19, 1.26, 1.33, 1.41, 1.5];
+const ROUTE_QUOTES = {
+  king: ["王冠有点沉，但气场不能输。", "本王准你多摸两下。", "全荷塘都在等朕出发。"],
+  prince: ["请多指教，今天风很温柔。", "谢谢你的莲子，很甜。", "出发前先整理一下绶带。"],
+  duke: ["急什么，先摇两下折扇。", "躺平也是门手艺活。", "好吧，看在你的面子上跳两下。"],
+  general: ["军情紧急，荷叶列阵！", "甲胄擦亮，随时出征。", "这点风浪，不足挂齿。"],
+  ceo: ["这片荷塘，我承包了。", "给你三分钟陪我发呆。", "效率第一，现在出发。"],
+  college: ["早八逃不掉，荷叶总能跳。", "背上书包，今天去哪玩？", "有零食我就原谅你。"],
+  it: ["别催，正在算落点抛物线。", "再跳一叶就下班，真的。", "这波零 Bug，稳得很。"],
+  hero: ["江湖路远，有你便不孤单。", "斗笠一压，风起叶动。", "待我一跃过沧澜。"],
+  monk: ["落水亦是缘，不必挂怀。", "心静了，沉叶也慢下来。", "施主，今日莲子甚香。"],
+  queen: ["今晚的星星，分你一半。", "本宫的披风不能沾水。", "走吧，让荷塘见识一下。"],
+  princess: ["转个圈给你看，好看吗？", "想要亮晶晶的泡泡！", "今天也要漂漂亮亮出门。"],
+  empress: ["水泽万顷，皆听号令。", "照顾好自己，也照顾好我。", "随朕巡视这片盛夏。"],
+  commander: ["银甲红缨，一步不退！", "阵风再大，我替你挡着。", "列队完毕，即刻启程。"],
+  bosslady: ["荷塘合同签好了，归你。", "别让进度条等太久。", "今天拿个 S 级回来。"],
+  sweetheart: ["最好的荷叶留给你啦～", "嘿嘿，被摸头会变开心。", "一起去捉亮亮的小虫吧！"],
+  coder: ["落点误差已收敛到 0.01。", "喝口荷露，继续优化手感。", "算法验证通过，出发！"],
+  swordswoman: ["剑穗轻扬，踏叶无声。", "谁敢拦路，一剑挑开。", "风正好，随我闯一遭。"],
+  saint: ["莲开有时，静候佳音。", "水波不兴，心自有光。", "愿此行平安喜乐。"],
+  artist: ["今天的水色，很适合写生。", "别动，我把这一刻画下来。", "去远处找一抹新颜色吧。"]
+};
+const POND_THEMES = [
+  { id: "summer", name: "碧水初夏", cost: 0, bg: 0xcdeee0, horizon: 0xdcebf0, zenith: 0x689ab8,
+    water: 0x49745b, deep: 0x224c3e, hemiSky: 0xe4efff, hemiGround: 0x34452b, hemiI: 0.8,
+    sun: 0xfff1d4, sunI: 1.6, rim: 0x9fe4ff, rimI: 0.42, bounce: 0xffd8a6, bounceI: 0.16, fx: null },
+  { id: "sunset", name: "落日金波", cost: 3, bg: 0xf0c9a8, horizon: 0xf7caa1, zenith: 0x7c6a96,
+    water: 0x5c6d59, deep: 0x383d39, hemiSky: 0xffdfb8, hemiGround: 0x4e3729, hemiI: 0.85,
+    sun: 0xffb86b, sunI: 1.75, rim: 0xffd2a6, rimI: 0.52, bounce: 0xffaa6e, bounceI: 0.24, fx: null },
+  { id: "rain", name: "细雨荷塘", cost: 4, bg: 0xb7ccd0, horizon: 0xc4d6da, zenith: 0x627c8c,
+    water: 0x3c6160, deep: 0x1d3a3c, hemiSky: 0xd4e4ec, hemiGround: 0x2b3e3a, hemiI: 0.92,
+    sun: 0xddebf2, sunI: 1.15, rim: 0x9bc4d8, rimI: 0.36, bounce: 0xa6c4c6, bounceI: 0.14, fx: "rain" },
+  { id: "firefly", name: "夏夜萤火", cost: 5, bg: 0x1d3145, horizon: 0x284359, zenith: 0x0c1626,
+    water: 0x1e404d, deep: 0x0e222b, hemiSky: 0x6d98c4, hemiGround: 0x162422, hemiI: 0.68,
+    sun: 0xb8d4ff, sunI: 1.15, rim: 0xffe48a, rimI: 0.55, bounce: 0x5d8b8c, bounceI: 0.18, fx: "firefly" }
+];
 const SKILLS = {
   glide: { name: "轻风滑翔", text: "修正下一跳的落点", symbol: "↗" },
   anchor: { name: "定叶术", text: "稳住眼前荷叶，驱散阵风", symbol: "⚓" },
@@ -239,6 +276,10 @@ const page = {
     souvenirs: [],
     rewardText: "",
     petHabit: "",
+    petQuote: "",
+    pondTheme: "summer",
+    unlockedThemes: ["summer"],
+    pondThemeList: POND_THEMES.map((theme) => ({ id: theme.id, name: theme.name, cost: theme.cost, unlocked: theme.cost === 0 })),
     storageNotice: "",
     districtName: DISTRICTS[0].name,
     districtNumber: 1,
@@ -336,7 +377,10 @@ const page = {
       if (typeof wx !== "undefined" && wx.getStorageSync) saved = wx.getStorageSync(PET_STORAGE);
     } catch (error) { saved = null; }
     if (!saved || saved.version !== 1 || !this.getRouteById(saved.routeId)
-      || typeof saved.name !== "string" || !Number.isFinite(saved.growth)) return;
+      || typeof saved.name !== "string" || !Number.isFinite(saved.growth)) {
+      this.loadPondAccount();
+      return;
+    }
     const number = (value, max) => Number.isFinite(value) ? clamp(Math.floor(value), 0, max) : 0;
     this.companion = {
       id: typeof saved.id === 'string' ? saved.id.slice(0,100) : 'legacy-' + saved.routeId + '-' + saved.name.slice(0,12),
@@ -351,7 +395,111 @@ const page = {
     };
     this.companionId = this.companion.id;
     this.lastRewardedRunId = this.companion.lastRewardedRunId;
+    this.loadPondAccount();
     this.updateCompanionSummary();
+  },
+
+  loadPondAccount() {
+    let saved;
+    try {
+      if (typeof wx !== "undefined" && wx.getStorageSync) saved = wx.getStorageSync(POND_STORAGE);
+    } catch (error) { saved = null; }
+    const validIds = POND_THEMES.map((item) => item.id);
+    const unlocked = new Set(["summer"]);
+    if (saved && saved.version === 1 && Array.isArray(saved.unlockedThemes)) {
+      saved.unlockedThemes.forEach((id) => { if (validIds.includes(id)) unlocked.add(id); });
+    }
+    const theme = saved && saved.version === 1 && unlocked.has(saved.pondTheme) ? saved.pondTheme : "summer";
+    // 莲子跨伙伴通用：首次升级自动继承旧伙伴存档里的莲子，老玩家不会丢奖励。
+    const fallbackSnacks = this.companion && Number.isFinite(this.companion.snacks) ? this.companion.snacks : 0;
+    const snacks = saved && saved.version === 1 && Number.isFinite(saved.snacks)
+      ? clamp(Math.floor(saved.snacks), 0, 999)
+      : clamp(Math.floor(fallbackSnacks), 0, 999);
+    this.pondAccount = { version: 1, snacks, pondTheme: theme, unlockedThemes: Array.from(unlocked) };
+    this.syncPondAccountData();
+    if (!this.data.petQuote) this.setData({ petQuote: this.routeQuote((this.companion && this.companion.routeId) || "king", 0) });
+  },
+
+  sharedSnacks() {
+    if (!this.pondAccount) this.loadPondAccount();
+    return this.pondAccount.snacks;
+  },
+
+  setSharedSnacks(value) {
+    if (!this.pondAccount) this.loadPondAccount();
+    const snacks = clamp(Math.floor(value || 0), 0, 999);
+    this.pondAccount.snacks = snacks;
+    this.setData({ snacks, statusSnacks: snacks });
+    this.savePondAccount();
+  },
+
+  savePondAccount() {
+    if (!this.pondAccount) return false;
+    try {
+      if (typeof wx !== "undefined" && wx.setStorageSync) wx.setStorageSync(POND_STORAGE, this.pondAccount);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  syncPondAccountData() {
+    if (!this.pondAccount) return;
+    const unlocked = this.pondAccount.unlockedThemes;
+    const list = POND_THEMES.map((item) => ({
+      id: item.id, name: item.name, cost: item.cost, unlocked: unlocked.indexOf(item.id) >= 0
+    }));
+    this.setData({
+      snacks: this.pondAccount.snacks,
+      statusSnacks: this.pondAccount.snacks,
+      pondTheme: this.pondAccount.pondTheme,
+      unlockedThemes: unlocked.slice(),
+      pondThemeList: list
+    });
+  },
+
+  choosePondTheme(event) {
+    const id = event && event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.id;
+    const theme = POND_THEMES.find((item) => item.id === id);
+    if (!theme) return;
+    if (!this.pondAccount) this.loadPondAccount();
+    const unlocked = this.pondAccount.unlockedThemes.indexOf(id) >= 0;
+    if (!unlocked) {
+      if (this.pondAccount.snacks < theme.cost) {
+        this.setData({ storageNotice: "解锁「" + theme.name + "」还差 " + (theme.cost - this.pondAccount.snacks) + " 颗莲子（闯关可带回）" });
+        this.playSound("select");
+        return;
+      }
+      this.pondAccount.snacks -= theme.cost;
+      this.pondAccount.unlockedThemes.push(id);
+      this.playSound("perfect", { rate: 1.19 });
+      this.vibrate("medium");
+      this.setData({ storageNotice: "已解锁「" + theme.name + "」氛围！" });
+    } else {
+      this.playSound("select");
+      this.setData({ storageNotice: "" });
+    }
+    this.pondAccount.pondTheme = id;
+    this.syncPondAccountData();
+    this.savePondAccount();
+    this.applyPondTheme(id);
+  },
+
+  routeQuote(routeId, index) {
+    const list = ROUTE_QUOTES[routeId] || ROUTE_QUOTES.king;
+    const i = index === undefined ? Math.floor(Math.random() * list.length) : ((index % list.length) + list.length) % list.length;
+    return list[i];
+  },
+
+  speakQuote(routeId, quiet) {
+    const id = (typeof routeId === "string" && routeId) || this.data.selectedRouteId || (this.companion && this.companion.routeId) || "king";
+    const list = ROUTE_QUOTES[id] || ROUTE_QUOTES.king;
+    this.quoteIndex = ((this.quoteIndex === undefined ? -1 : this.quoteIndex) + 1) % list.length;
+    this.setData({ petQuote: list[this.quoteIndex] });
+    if (!quiet) {
+      this.playSound("select");
+      this.vibrate("light");
+    }
   },
 
   updateCompanionSummary() {
@@ -398,22 +546,24 @@ const page = {
       selectedRouteName: route.name, selectedPerkName: this.perk.name, selectedPerkText: this.perk.text,
       growth: pet.growth, growthPercent: clamp(Math.round(pet.growth / 118 * 100), 0, 100),
       food: pet.food, affection: pet.affection, play: pet.play,
-      snacks: pet.snacks, adventures: pet.adventures,
+      snacks: this.sharedSnacks(), adventures: pet.adventures,
       souvenirs: SOUVENIRS.filter((item) => pet.adventures >= item.at).map((item) => item.name),
       canChallenge: stage.index >= 3, stageName: stage.name, chapter: pet.name + "的池塘",
       careTitle: stage.index >= 3 ? this.careTitle() : "", careKey: this.careTopKey(),
       needKey: need.key, needHint: need.hint, careBusy: false, actionLabel: "",
-      gameOver: false, transition: false, petHabit: this.habitText() });
+      gameOver: false, transition: false, petHabit: this.habitText(),
+      petQuote: this.routeQuote(route.id, stage.index >= 3 ? 2 : 0) });
     this.spawnPet(stage.index);
     this.floatLeaves.visible = true;
     this.updateHomeDecor();
+    this.applyPondTheme(this.data.pondTheme);
     this.cameraSnap();
   },
 
   openNewCompanion() {
     const open = () => { this.openRoutes('new'); };
     if (typeof wx === "undefined" || !wx.showModal) { open(); return; }
-    wx.showModal({ title: "结识新的伙伴", content: "新伙伴会接替当前的陪伴。已收集的路线和最好成绩会保留，确认名字后才会替换。",
+    wx.showModal({ title: "结识新的伙伴", content: "新伙伴会接替当前的陪伴。已收集的路线、莲子、荷塘氛围和最好成绩都会保留，确认名字后才会替换。",
       confirmText: "去看看", success: (result) => { if (result.confirm) open(); } });
   },
 
@@ -572,13 +722,16 @@ const page = {
     this.scene.background = new T.Color(0xcdeee0);
     // 雾从 24 开始：角色在 5~8 的位置完全不受影响，只有远景被吃掉。
     this.scene.fog = new T.Fog(0xcdeee0, 24, 62);
-    this.scene.add(art.makeSky(0xdcebf0, 0x689ab8, 78));
+    this.skyMesh = art.makeSky(0xdcebf0, 0x689ab8, 78);
+    this.scene.add(this.skyMesh);
 
     // 三灯布光：主光暖、天光冷且压低（给形体留暗部）、背后一盏冷轮廓光。
     const hemi = new T.HemisphereLight(0xe4efff, 0x34452b, 0.8);
+    this.hemiLight = hemi;
     this.scene.add(hemi);
 
     const sun = new T.DirectionalLight(0xfff1d4, 1.6);
+    this.sunLight = sun;
     sun.position.set(-5.5, 11, 6.5);
     sun.castShadow = true;
     sun.shadow.mapSize.width = 1024;
@@ -594,10 +747,12 @@ const page = {
     this.scene.add(sun);
 
     const rim = new T.DirectionalLight(0x9fe4ff, 0.42);
+    this.rimLight = rim;
     rim.position.set(6, 5.5, -7);
     this.scene.add(rim);
 
     const bounce = new T.DirectionalLight(0xffd8a6, 0.16);
+    this.bounceLight = bounce;
     bounce.position.set(2, -4, 5);
     this.scene.add(bounce);
 
@@ -684,6 +839,100 @@ const page = {
     this.blink = { next: Date.now() + 2600 };
     this.pose = { sx: 1, sy: 1, sz: 1, rx: 0, rz: 0, dy: 0 };
     this.sceneStartedAt=Date.now();
+    this.applyPondTheme(this.data.pondTheme);
+  },
+
+  applyPondTheme(id) {
+    if (!this.scene || !this.materials) return;
+    const T = this.THREE;
+    const theme = POND_THEMES.find((item) => item.id === id) || POND_THEMES[0];
+    this.activePondTheme = theme;
+    if (this.scene.background) this.scene.background.setHex(theme.bg);
+    if (this.scene.fog) this.scene.fog.color.setHex(theme.bg);
+    if (this.materials.water) this.materials.water.color.setHex(theme.water).convertSRGBToLinear();
+    if (this.materials.deepWater) this.materials.deepWater.color.setHex(theme.deep).convertSRGBToLinear();
+    if (this.hemiLight) {
+      this.hemiLight.color.setHex(theme.hemiSky);
+      this.hemiLight.groundColor.setHex(theme.hemiGround);
+      this.hemiLight.intensity = theme.hemiI;
+    }
+    if (this.sunLight) { this.sunLight.color.setHex(theme.sun); this.sunLight.intensity = theme.sunI; }
+    if (this.rimLight) { this.rimLight.color.setHex(theme.rim); this.rimLight.intensity = theme.rimI; }
+    if (this.bounceLight) { this.bounceLight.color.setHex(theme.bounce); this.bounceLight.intensity = theme.bounceI; }
+    if (this.skyMesh && this.skyMesh.geometry && this.skyMesh.geometry.attributes && this.skyMesh.geometry.attributes.color) {
+      const pos = this.skyMesh.geometry.attributes.position, col = this.skyMesh.geometry.attributes.color;
+      const horizon = new T.Color(theme.horizon).convertSRGBToLinear();
+      const zenith = new T.Color(theme.zenith).convertSRGBToLinear();
+      const mixed = new T.Color();
+      for (let i = 0; i < pos.count; i += 1) {
+        const t = clamp((pos.getY(i) / 78) * 1.7 + 0.12, 0, 1);
+        mixed.copy(horizon).lerp(zenith, t * t);
+        col.setXYZ(i, mixed.r, mixed.g, mixed.b);
+      }
+      col.needsUpdate = true;
+    }
+    this.buildThemeParticles(theme.fx);
+  },
+
+  buildThemeParticles(kind) {
+    if (this.themeParticles) { this.removeObject(this.themeParticles); this.themeParticles = null; }
+    if (!kind || !this.pondGroup) return;
+    const T = this.THREE;
+    const count = kind === "firefly" ? 36 : 48;
+    const positions = new Float32Array(count * 3);
+    const seeds = [];
+    for (let i = 0; i < count; i += 1) {
+      const angle = (i / count) * TAU + Math.random() * 0.4;
+      const radius = 1.4 + Math.random() * 7.6;
+      const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+      const y = kind === "firefly" ? 0.35 + Math.random() * 2.6 : 0.4 + Math.random() * 5.6;
+      positions[i * 3] = x; positions[i * 3 + 1] = y; positions[i * 3 + 2] = z;
+      seeds.push({ x, y, z, phase: Math.random() * TAU, speed: kind === "firefly" ? 0.5 + Math.random() * 0.7 : 3.2 + Math.random() * 1.6 });
+    }
+    const geometry = new T.BufferGeometry();
+    (geometry.setAttribute || geometry.addAttribute).call(geometry, "position", new T.Float32BufferAttribute(positions, 3));
+    const material = new T.PointsMaterial({
+      color: kind === "firefly" ? 0xffe885 : 0xd6eef7,
+      size: kind === "firefly" ? 0.16 : 0.085,
+      transparent: true,
+      opacity: kind === "firefly" ? 0.85 : 0.52,
+      depthWrite: false
+    });
+    const points = new T.Points(geometry, material);
+    points.frustumCulled = false;
+    points.userData = { kind, seeds, lastDrop: 0 };
+    this.themeParticles = points;
+    this.pondGroup.add(points);
+  },
+
+  updateThemeParticles(now, dt) {
+    const points = this.themeParticles;
+    if (!points || !points.geometry || !points.geometry.attributes) return;
+    const attr = points.geometry.attributes.position;
+    const { kind, seeds } = points.userData;
+    const t = now / 1000;
+    if (kind === "firefly") {
+      for (let i = 0; i < seeds.length; i += 1) {
+        const s = seeds[i];
+        attr.setXYZ(i, s.x + Math.sin(t * s.speed + s.phase) * 0.45,
+          s.y + Math.sin(t * (s.speed * 1.3) + s.phase * 2) * 0.25,
+          s.z + Math.cos(t * (s.speed * 0.8) + s.phase) * 0.45);
+      }
+      points.material.opacity = 0.62 + Math.sin(t * 2.2) * 0.24;
+    } else if (kind === "rain") {
+      for (let i = 0; i < seeds.length; i += 1) {
+        const s = seeds[i];
+        s.y -= s.speed * dt;
+        s.x += 0.28 * dt;
+        if (s.y < 0.05) { s.y = 5.4 + Math.random() * 0.8; s.x = (Math.random() - 0.5) * 14; s.z = (Math.random() - 0.5) * 14; }
+        attr.setXYZ(i, s.x, s.y, s.z);
+      }
+      if (now - points.userData.lastDrop > 420) {
+        points.userData.lastDrop = now;
+        this.emitWaterRipple({ x: (Math.random() - 0.5) * 8, z: (Math.random() - 0.5) * 8 }, 0.22);
+      }
+    }
+    attr.needsUpdate = true;
   },
 
   applyWaterShader() {
@@ -1008,6 +1257,7 @@ const page = {
       selectedPerkName: perk ? perk.name : "",
       selectedPerkText: perk ? perk.text : "",
       skillName: skill.name, skillText: skill.text, skillSymbol: skill.symbol,
+      petQuote: this.routeQuote(route.id, 0),
       chapter: route.name,
       message: "已选择：" + route.name + (perk ? "（" + perk.name + "）" : "")
     });
@@ -1053,7 +1303,8 @@ const page = {
       phase: "nurture",
       petName: name,
       choosingNew: false,
-      snacks: 0, adventures: 0, souvenirs: [], rewardText: "", storageNotice: "", petHabit: "",
+      snacks: this.sharedSnacks(), adventures: 0, souvenirs: [], rewardText: "", storageNotice: "", petHabit: "",
+      petQuote: this.routeQuote(this.data.selectedRouteId, 0),
       food: 12,
       affection: 10,
       play: 8,
@@ -1119,11 +1370,13 @@ const page = {
 
     const need = this.needState(next.food, next.affection, next.play);
     const done = stage.index >= 3;
+    const nextSnacks = Math.max(0, this.data.snacks - (snack ? 1 : 0));
+    if (snack) this.setSharedSnacks(nextSnacks);
     this.setData({
       food: next.food,
       affection: next.affection,
       play: next.play,
-      snacks: Math.max(0, this.data.snacks - (snack ? 1 : 0)),
+      snacks: nextSnacks,
       growth,
       growthPercent: clamp(Math.round((growth / 118) * 100), 0, 100),
       stageName: stage.name,
@@ -1131,6 +1384,7 @@ const page = {
       careTitle: done ? this.careTitle() : this.data.careTitle,
       careKey: done ? this.careTopKey() : this.data.careKey,
       petHabit: this.habitText(),
+      petQuote: this.routeQuote(this.data.selectedRouteId, done ? 2 : boost.type === "feed" ? 1 : 0),
       needKey: need.key,
       needHint: need.hint,
       message: done ? "小青蛙长成了，可以去闯关。" : boost.text
@@ -1141,54 +1395,113 @@ const page = {
 
   startBubbleGame() {
     if (this.data.careBusy || this.data.phase !== "nurture") return;
-    this.bubbleGame = { start: Date.now(), duration: 10000, score: 0 };
+    this.bubbleGame = { start: Date.now(), duration: 10000, score: 0, goldHit: false };
     this.setData({ bubblePlaying: true, bubbleScore: 0, bubbleSeconds: 10, careBusy: true, actionLabel: "追泡泡" });
-    this.spawnPlayBubble();
+    this.clearPlayBubbles();
+    this.playBubbles = [];
+    for (let slot = 0; slot < 3; slot += 1) this.spawnPlayBubble(slot);
   },
 
-  spawnPlayBubble() {
-    this.removeObject(this.playBubble);
+  clearPlayBubbles() {
+    (this.playBubbles || []).forEach((bubble) => this.removeObject(bubble));
+    if (this.playBubble && !(this.playBubbles || []).includes(this.playBubble)) this.removeObject(this.playBubble);
+    this.playBubbles = [];
+    this.playBubble = null;
+  },
+
+  spawnPlayBubble(slot) {
     if (!this.bubbleGame) return;
+    const index = typeof slot === "number" ? slot : 0;
+    this.playBubbles = this.playBubbles || [];
+    if (this.playBubbles[index]) this.removeObject(this.playBubbles[index]);
     const T = this.THREE;
-    const material = new T.MeshStandardMaterial({ color: 0xb9f5ef, transparent: true,
-      opacity: 0.65, roughness: 0.12, metalness: 0.18 });
-    this.playBubble = new T.Mesh(new this.geo.Sphere(0.20, 20, 16), material);
-    this.playBubble.position.set((Math.random() - 0.5) * 1.8, 0.65 + Math.random() * 0.65, 1.25);
-    this.playBubble.userData.start = Date.now();
-    this.pondGroup.add(this.playBubble);
+    // 0 号槽保持普通水色泡泡（兼容旧回归用例并确保场上始终有稳妥目标），其余槽有概率刷新金色双倍泡泡。
+    const golden = index > 0 && Math.random() < 0.36;
+    const material = new T.MeshStandardMaterial({
+      color: golden ? 0xffe27a : 0xb9f5ef,
+      emissive: golden ? 0x7c5612 : 0x000000,
+      emissiveIntensity: golden ? 0.35 : 0,
+      transparent: true,
+      opacity: golden ? 0.82 : 0.65,
+      roughness: golden ? 0.08 : 0.12,
+      metalness: golden ? 0.35 : 0.18
+    });
+    const bubble = new T.Mesh(new this.geo.Sphere(golden ? 0.18 : 0.20, 20, 16), material);
+    const laneX = [-0.82, 0, 0.82][index % 3] + (Math.random() - 0.5) * 0.42;
+    bubble.position.set(laneX, 0.55 + Math.random() * 0.65, 1.25 + (index - 1) * 0.06);
+    bubble.userData = {
+      start: Date.now(), slot: index, golden, value: golden ? 2 : 1,
+      baseX: laneX, phase: Math.random() * TAU, speed: golden ? 0.11 : 0.07
+    };
+    this.pondGroup.add(bubble);
+    this.playBubbles[index] = bubble;
+    this.playBubble = this.playBubbles[0] || bubble;
   },
 
   touchPlayBubble(touch) {
-    if (!this.playBubble || !this.bubbleGame || !touch) return;
+    const bubbles = (this.playBubbles && this.playBubbles.length) ? this.playBubbles : (this.playBubble ? [this.playBubble] : []);
+    if (!bubbles.length || !this.bubbleGame || !touch) return;
     this.camera.updateMatrixWorld();
-    const p = this.playBubble.position.clone().project(this.camera);
-    const distance = Math.hypot((p.x + 1) * this.width / 2 - touch.x, (1 - p.y) * this.height / 2 - touch.y);
-    if (distance > 48) return;
-    this.emitBurst(this.playBubble.position.clone(), 0xb9f5ef, 7);
-    this.bubbleGame.score += 1;
-    this.setData({ bubbleScore: this.bubbleGame.score });
-    this.vibrate("light");
-    this.spawnPlayBubble();
-    if (this.bubbleGame.score >= 5) this.finishBubbleGame();
+    let hit = null, bestDist = 52;
+    bubbles.forEach((bubble) => {
+      if (!bubble) return;
+      const p = bubble.position.clone().project(this.camera);
+      const distance = Math.hypot((p.x + 1) * this.width / 2 - touch.x, (1 - p.y) * this.height / 2 - touch.y);
+      if (distance <= bestDist) { bestDist = distance; hit = bubble; }
+    });
+    if (!hit) return;
+    const golden = !!(hit.userData && hit.userData.golden);
+    const value = (hit.userData && hit.userData.value) || 1;
+    this.emitBurst(hit.position.clone(), golden ? 0xffe27a : 0xb9f5ef, golden ? 11 : 7);
+    this.playSound(golden ? "perfect" : "select", golden ? { rate: 1.19 } : undefined);
+    this.bubbleGame.score = Math.min(5, this.bubbleGame.score + value);
+    if (golden) this.bubbleGame.goldHit = true;
+    this.setData({
+      bubbleScore: this.bubbleGame.score,
+      actionLabel: golden ? "金色泡泡 ×2！" : "追泡泡"
+    });
+    this.vibrate(golden ? "medium" : "light");
+    if (this.bubbleGame.score >= 5) { this.finishBubbleGame(); return; }
+    this.spawnPlayBubble(hit.userData && typeof hit.userData.slot === "number" ? hit.userData.slot : 0);
   },
 
   finishBubbleGame() {
     if (!this.bubbleGame) return;
     const score = this.bubbleGame.score;
+    const goldHit = !!this.bubbleGame.goldHit;
     const played = Date.now() - this.bubbleGame.start >= 1500 || score > 0;
     this.bubbleGame = null;
-    this.removeObject(this.playBubble); this.playBubble = null;
+    this.clearPlayBubbles();
     this.setData({ bubblePlaying: false, careBusy: false, actionLabel: "", bubbleScore: score });
-    if (played) this.applyCare(CARE_BOOSTS.play);
-    this.setData({ needHint: score ? "一起追到了 " + score + " 个泡泡" : "陪伴本身就很开心" });
+    if (played) {
+      this.applyCare(CARE_BOOSTS.play);
+      if (goldHit) {
+        this.setData({ play: clamp(this.data.play + 5, 0, 100) });
+        this.saveCompanion();
+      }
+    }
+    this.setData({
+      needHint: goldHit
+        ? "点破了金色泡泡！一起追到 " + score + " 分"
+        : score ? "一起追到了 " + score + " 个泡泡" : "陪伴本身就很开心"
+    });
   },
 
   updateBubbleGame(now, dt) {
     if (!this.bubbleGame) return;
     const seconds = Math.max(0, Math.ceil((this.bubbleGame.duration - now + this.bubbleGame.start) / 1000));
     if (seconds !== this.data.bubbleSeconds) this.setData({ bubbleSeconds: seconds });
-    if (this.playBubble) {
-      this.playBubble.position.y += dt * 0.07;
+    const bubbles = this.playBubbles || (this.playBubble ? [this.playBubble] : []);
+    bubbles.forEach((bubble, index) => {
+      if (!bubble) return;
+      const meta = bubble.userData || {};
+      bubble.position.y += dt * (meta.speed || 0.07);
+      if (typeof meta.baseX === "number") {
+        bubble.position.x = meta.baseX + Math.sin(now / 520 + (meta.phase || 0)) * (meta.golden ? 0.16 : 0.09);
+      }
+      if (bubble.position.y > 1.75) this.spawnPlayBubble(typeof meta.slot === "number" ? meta.slot : index);
+    });
+    if (bubbles.length) {
       const actor = this.actor();
       if (actor) actor.rotation.y = Math.sin(now / 300) * 0.16;
     }
@@ -1307,9 +1620,20 @@ const page = {
     const district = DISTRICTS[number];
     this.setData({ districtName: district.name, districtNumber: number + 1,
       chapter: "荷叶小径 · " + district.name });
-    if (this.materials.water) this.materials.water.color.setHex(district.water).convertSRGBToLinear();
-    if (this.scene.background) this.scene.background.setHex(district.sky);
-    if (this.scene.fog) this.scene.fog.color.setHex(district.sky);
+    const theme = this.activePondTheme;
+    if (!theme || theme.id === "summer") {
+      if (this.materials.water) this.materials.water.color.setHex(district.water).convertSRGBToLinear();
+      if (this.scene.background) this.scene.background.setHex(district.sky);
+      if (this.scene.fog) this.scene.fog.color.setHex(district.sky);
+    } else {
+      const T = this.THREE;
+      if (this.materials.water) {
+        const w = new T.Color(theme.water).lerp(new T.Color(district.water), 0.22);
+        this.materials.water.color.copy(w).convertSRGBToLinear();
+      }
+      if (this.scene.background) this.scene.background.setHex(theme.bg);
+      if (this.scene.fog) this.scene.fog.color.setHex(theme.bg);
+    }
     this.removeObject(this.districtDecor);
     this.districtDecor = new this.THREE.Group();
     this.pondGroup.add(this.districtDecor);
@@ -1568,6 +1892,14 @@ const page = {
     if (this.data.paused || this.data.gameOver || this.data.transition) return;
     if (this.returnWorld && this.returnWorld.active) { this.returnWorld.touchStart(event); return; }
     const touch = (event.touches || [])[0];
+    if (this.data.phase === "home" && touch) {
+      const actor = this.actor();
+      if (actor) {
+        const center = actor.position.clone().add(new this.THREE.Vector3(0, 0.5, 0)).project(this.camera);
+        const distance = Math.hypot((center.x + 1) * this.width / 2 - touch.x, (1 - center.y) * this.height / 2 - touch.y);
+        if (distance < this.width * 0.38) this.speakQuote(this.companion && this.companion.routeId);
+      }
+    }
     if (this.data.phase === "nurture") {
       if (this.bubbleGame) this.touchPlayBubble(touch);
       else if (touch && !this.data.careBusy) {
@@ -1608,6 +1940,8 @@ const page = {
       const stroke = this.petStroke; this.petStroke = null;
       if (stroke.distance >= 30 && Date.now() - stroke.start > 100) {
         this.careAction({ currentTarget: { dataset: { type: "pet" } } });
+      } else if (stroke.distance < 18) {
+        this.speakQuote(this.data.selectedRouteId);
       }
     }
     if (this.data.phase === "levelJump") {
@@ -1861,14 +2195,23 @@ const page = {
     const jumps = this.data.jumps + 1;
     const perfect = state.score <= PERFECT_SCORE && !state.assisted;
     const perfectCount = this.data.perfect + (perfect ? 1 : 0);
+    this.noteCombo('jump', perfect);
+    const combo = perfect ? Math.max(1, this.data.jumpCombo || 1) : 0;
+    const rate = perfect ? PERFECT_PITCHES[Math.min(combo - 1, PERFECT_PITCHES.length - 1)] : 1;
     this.landingMotion = { start: now };
     leaf.userData.landingAt = now;
-    this.playSound(perfect ? 'perfect' : 'land');
-    this.emitRing(this.frogGroup.position, perfect ? 1.0 : 0.7);
+    this.playSound(perfect ? 'perfect' : 'land', { rate });
+    if (perfect) {
+      const ringSize = 1.0 + Math.min(combo - 1, 5) * 0.14;
+      this.emitRing(this.frogGroup.position, ringSize, 0xffe27a);
+      if (combo >= 2) this.emitRing(this.frogGroup.position, ringSize * 0.68, 0xfff6c2);
+    } else {
+      this.emitRing(this.frogGroup.position, 0.7);
+    }
     this.emitBurst(
       this.frogGroup.position.clone().add(new this.THREE.Vector3(0, 0.2, 0)),
-      perfect ? 0xffe082 : 0xe7f7c3,
-      perfect ? 12 : 7
+      perfect ? (combo >= 3 ? 0xfff09a : 0xffe082) : 0xe7f7c3,
+      perfect ? 12 + Math.min(combo - 1, 5) * 2 : 7
     );
     this.vibrate(perfect ? "heavy" : "medium");
 
@@ -1885,10 +2228,9 @@ const page = {
       message: leaf.userData.sink
         ? "快跳！这片荷叶要沉了"
         : perfect
-          ? "正中叶心！完美 ×" + perfectCount
+          ? (combo >= 2 ? "完美连击 ×" + combo + "！" : "正中叶心！完美 ×" + perfectCount)
           : state.score <= 1 ? "稳稳落叶" : "刚好踩住叶边"
     });
-    this.noteCombo('jump',perfect);
     if(perfect)this.recordMemory('perfect',{title:'第一次正中叶心',note:'轻轻一跃，稳稳落在荷叶中央。',stage:3});
 
     if (jumps >= JUMP_GOAL) {
@@ -2383,11 +2725,14 @@ const page = {
       const bonus=this.adventureBonus(),reward=3+bonus;
       const adventures = this.data.adventures + 1;
       const unlocked = SOUVENIRS.find((item) => item.at === adventures);
-      this.setData({ adventures, snacks: Math.min(999, this.data.snacks + reward),
+      const nextSnacks = Math.min(999, this.sharedSnacks() + reward);
+      this.setSharedSnacks(nextSnacks);
+      this.setData({ adventures, snacks: nextSnacks,
         souvenirs: SOUVENIRS.filter((item) => adventures >= item.at).map((item) => item.name),
         rewardText: "带回莲子 ×"+reward+(bonus?' · 额外奖励 +'+bonus:'') + (unlocked ? " · 新纪念物：" + unlocked.name : "") });
       this.rewardStored=this.saveCompanion();
     }
+    this.applyPondTheme(this.data.pondTheme);
 
     this.setData({
       phase: "final",
@@ -2504,13 +2849,13 @@ const page = {
     this.bursts.push(group);
   },
 
-  emitRing(position, size) {
+  emitRing(position, size, color) {
     this.emitWaterRipple(position,size||1);
     if (!this.effects) return;
     const T = this.THREE;
     const ring = new T.Mesh(
-      new this.geo.Torus(0.28, 0.022, 6, 32),
-      new T.MeshBasicMaterial({ color: 0xd8fff2, transparent: true, opacity: 0.85, depthWrite: false })
+      new this.geo.Torus(0.28, color ? 0.03 : 0.022, 6, 32),
+      new T.MeshBasicMaterial({ color: color || 0xd8fff2, transparent: true, opacity: 0.88, depthWrite: false })
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(position.x, 0.05, position.z);
@@ -2690,6 +3035,7 @@ const page = {
     }
 
     this.updateWorldTadpoles(dt, time);
+    this.updateThemeParticles(now, dt);
     this.updateFloatLeaves(time);
     this.updateIdle(now, time);
     this.updateCare(now);
@@ -2991,7 +3337,7 @@ const page = {
     this.sinkLeaf = null;
     this.petStroke = null;
     this.bubbleGame = null;
-    this.removeObject(this.playBubble); this.playBubble = null;
+    this.clearPlayBubbles();
     this.removeObject(this.districtDecor); this.districtDecor = null;
     this.slowUntil = 0;
     (this.jumpLeaves || []).forEach((leaf) => this.removeObject(leaf));
@@ -3046,6 +3392,7 @@ const page = {
 
   disposeThree() {
     this.clearChallengeObjects();
+    if (this.themeParticles) { this.removeObject(this.themeParticles); this.themeParticles = null; }
     this.removeObject(this.petGroup);
     this.removeObject(this.frogGroup);
     if (this.scene) this.scene.children.slice().forEach(object => this.removeObject(object));

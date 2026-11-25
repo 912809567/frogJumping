@@ -35,9 +35,11 @@ module.exports = function shell(page) {
 
     goHome() {
       this.stopAllSounds();
-      if (!this.data.threeReady) { this.setData({phase:'home',chapter:'初夏的池塘'});return; }
+      const quote = this.routeQuote ? this.routeQuote((this.companion && this.companion.routeId) || 'king', 0) : '';
+      if (!this.data.threeReady) { this.setData({phase:'home',chapter:'初夏的池塘',petQuote:quote});return; }
       this.openRoutes('home');
-      this.setData({ phase: 'home', chapter: '初夏的池塘', actionLabel: '' });
+      if (this.applyPondTheme) this.applyPondTheme(this.data.pondTheme);
+      this.setData({ phase: 'home', chapter: '初夏的池塘', actionLabel: '', storageNotice: '', petQuote: quote });
       this.cameraSnap();
     },
 
@@ -50,7 +52,7 @@ module.exports = function shell(page) {
       this.setData({ phase: 'status', chapter: '伙伴档案',
         statusGrowth: pet ? Math.min(100, Math.round(pet.growth / 118 * 100)) : 0,
         statusFood: pet ? pet.food : 0, statusAffection: pet ? pet.affection : 0,
-        statusPlay: pet ? pet.play : 0, statusSnacks: pet ? pet.snacks : 0,
+        statusPlay: pet ? pet.play : 0, statusSnacks: this.sharedSnacks ? this.sharedSnacks() : (pet ? pet.snacks : 0),
         statusAdventures: pet ? pet.adventures : 0, statusSkill: skillNames[skill] || '',
         statusPerk: route ? ({steady:'稳重',nimble:'轻盈',leap:'远跳',serene:'从容',kindred:'亲和'})[route.perk] : '' });
       if (this.data.threeReady) { this.showNurturePreview(); this.cameraSnap(); }
@@ -59,7 +61,7 @@ module.exports = function shell(page) {
 
     openSettings() {
       this.saveCompanion();
-      this.setData({ phase: 'settings', chapter: '池塘设置' });
+      this.setData({ phase: 'settings', chapter: '池塘设置', storageNotice: '' });
       this.playSound('select');
     },
 
@@ -88,7 +90,7 @@ module.exports = function shell(page) {
       this.resetRenderQualityWindow(Date.now(), 2000);
     },
 
-    playSound(name) {
+    playSound(name, options) {
       if (!this.data.soundEnabled || typeof wx === 'undefined' || !wx.createInnerAudioContext) return;
       if (!['select','charge','jump','land','perfect','tongue','swallow'].includes(name)) return;
       this.audioVoices = this.audioVoices || {};
@@ -100,6 +102,8 @@ module.exports = function shell(page) {
           if (voice.onError) voice.onError(() => {});
           this.audioVoices[name] = voice;
         }
+        const rate = options && Number.isFinite(options.rate) ? Math.max(.5, Math.min(2, options.rate)) : 1;
+        try { voice.playbackRate = rate; } catch (error) {}
         voice.stop(); voice.play();
       } catch (error) {}
     },
